@@ -41,30 +41,155 @@ A comprehensive expense tracking application built with React and Node.js that h
 - **Database**: SQLite
 - **Styling**: Custom CSS with modern design principles
 
+## Prerequisites
+
+Before running this application, ensure you have the following installed on your system:
+
+### Required Software
+
+1. **Node.js** (Version 16.0 or higher)
+   - Download from [nodejs.org](https://nodejs.org/)
+   - Or install via package manager:
+     ```bash
+     # macOS (using Homebrew)
+     brew install node
+     
+     # Ubuntu/Debian
+     sudo apt update
+     sudo apt install nodejs npm
+     
+     # Windows (using Chocolatey)
+     choco install nodejs
+     ```
+
+2. **npm** (Node Package Manager)
+   - Usually comes bundled with Node.js
+   - Verify installation: `npm --version`
+
+3. **Git** (for cloning the repository)
+   - Download from [git-scm.com](https://git-scm.com/)
+   - Or install via package manager:
+     ```bash
+     # macOS
+     brew install git
+     
+     # Ubuntu/Debian
+     sudo apt install git
+     
+     # Windows
+     choco install git
+     ```
+
+### System Requirements
+
+- **Operating System**: Windows 10+, macOS 10.14+, or Linux (Ubuntu 18.04+)
+- **RAM**: Minimum 4GB (8GB recommended)
+- **Storage**: At least 500MB free space
+- **Browser**: Modern browser with JavaScript enabled (Chrome, Firefox, Safari, Edge)
+
+### Port Requirements
+
+The application uses the following ports (ensure they're available):
+- **Port 3000**: Frontend React application
+- **Port 5000**: Backend API server
+
+### Verification Commands
+
+Run these commands to verify your setup:
+
+```bash
+# Check Node.js version (should be 16.0+)
+node --version
+
+# Check npm version
+npm --version
+
+# Check Git version
+git --version
+
+# Check if ports are available
+# macOS/Linux
+lsof -i :3000 -i :5000
+
+# Windows
+netstat -an | findstr ":3000 :5000"
+```
+
 ## Installation & Setup
 
-1. **Clone or download the project**
-   ```bash
-   cd expense-manager
-   ```
+### Step 1: Clone the Repository
 
-2. **Install dependencies**
-   ```bash
-   npm run install-all
-   ```
+```bash
+# Clone the repository
+git clone <repository-url>
+cd expense-manager
 
-3. **Start the application**
-   ```bash
-   # Start the backend server
-   npm run dev
-   
-   # In a new terminal, start the frontend
-   npm run client
-   ```
+# Or if you have the project folder, navigate to it
+cd /path/to/expense-manager
+```
 
-4. **Access the application**
-   - Open your browser and go to `http://localhost:3000`
-   - The backend API runs on `http://localhost:5000`
+### Step 2: Install Dependencies
+
+The application has two sets of dependencies - backend and frontend:
+
+```bash
+# Install backend dependencies (from project root)
+npm install
+
+# Install frontend dependencies
+cd client
+npm install
+cd ..
+```
+
+**Alternative (if you have the install-all script):**
+```bash
+npm run install-all
+```
+
+### Step 3: Verify Installation
+
+```bash
+# Check if all dependencies are installed
+ls node_modules          # Should show backend dependencies
+ls client/node_modules   # Should show frontend dependencies
+
+# Verify package.json files exist
+ls package.json
+ls client/package.json
+```
+
+### Step 4: Start the Application
+
+Choose one of the methods below:
+
+#### Method 1: Service Script (Recommended)
+```bash
+# Start both servers in background
+./service.sh start
+
+# Check status
+./service.sh status
+
+# Stop when done
+./service.sh stop
+```
+
+#### Method 2: Manual Start
+```bash
+# Terminal 1 - Backend
+npm run dev
+
+# Terminal 2 - Frontend  
+cd client
+npm start
+```
+
+### Step 5: Access the Application
+
+- **Frontend**: Open your browser and go to `http://localhost:3000`
+- **Backend API**: Available at `http://localhost:5000`
+- **Database**: SQLite database (`expenses.db`) will be created automatically
 
 ## Quick Start (recommended)
 
@@ -121,18 +246,196 @@ The improved stop functionality ensures:
 - ✅ Force kills any stubborn processes
 - ✅ Emergency `force-stop` command for stuck processes
 
-## Common Issues
+## Troubleshooting
 
-- "Could not read package.json": You are in the wrong directory. Run:
-  ```bash
-  cd /Users/yunushaikh/expense-manager
-  ```
-- "Cannot find module '/Users/yunushaikh/server/index.js'": Run commands from the project root (`/Users/yunushaikh/expense-manager`), not your home folder.
-- `cd: no such file or directory: client`: Ensure you are inside the project folder before running `cd client`.
-- Node not found: Install Node with Homebrew:
-  ```bash
-  brew install node
-  ```
+### Common Installation Issues
+
+#### 1. Node.js Not Found
+```bash
+# Error: node: command not found
+# Solution: Install Node.js
+# macOS
+brew install node
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install nodejs npm
+
+# Windows
+# Download from https://nodejs.org/
+```
+
+#### 2. Permission Denied Errors
+```bash
+# Error: EACCES: permission denied
+# Solution: Fix npm permissions
+sudo chown -R $(whoami) ~/.npm
+# Or use a Node version manager like nvm
+```
+
+#### 3. Port Already in Use
+```bash
+# Error: EADDRINUSE: address already in use :::5000
+# Solution: Kill processes using the ports
+./service.sh force-stop
+
+# Or manually kill processes
+# macOS/Linux
+lsof -ti :3000 | xargs kill -9
+lsof -ti :5000 | xargs kill -9
+
+# Windows
+netstat -ano | findstr :3000
+taskkill /PID <PID_NUMBER> /F
+```
+
+#### 4. Module Not Found Errors
+```bash
+# Error: Cannot find module 'express'
+# Solution: Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+
+# For frontend
+cd client
+rm -rf node_modules package-lock.json
+npm install
+```
+
+#### 5. Database Connection Issues
+```bash
+# Error: SQLITE_CANTOPEN
+# Solution: Check file permissions
+chmod 755 expenses.db
+# Or delete and recreate
+rm expenses.db
+# The database will be recreated on next startup
+```
+
+### Service Script Issues
+
+#### 1. Service Script Not Executable
+```bash
+# Error: Permission denied: ./service.sh
+# Solution: Make script executable
+chmod +x service.sh
+```
+
+#### 2. Service Won't Start
+```bash
+# Check logs for errors
+cat service.log
+cat backend.log
+cat frontend.log
+
+# Try force stop and restart
+./service.sh force-stop
+./service.sh start
+```
+
+#### 3. PID Files Issues
+```bash
+# Error: PID file exists but process not running
+# Solution: Clean up PID files
+rm -f .backend.pid .frontend.pid
+./service.sh start
+```
+
+### Development Issues
+
+#### 1. React App Won't Start
+```bash
+# Error: Could not read package.json
+# Solution: Ensure you're in the right directory
+pwd  # Should show /path/to/expense-manager
+cd client
+npm start
+```
+
+#### 2. Backend API Not Responding
+```bash
+# Check if backend is running
+./service.sh status
+
+# Check backend logs
+tail -f backend.log
+
+# Restart backend
+./service.sh stop
+./service.sh start
+```
+
+#### 3. Frontend Build Errors
+```bash
+# Clear cache and reinstall
+cd client
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+npm start
+```
+
+### System-Specific Issues
+
+#### macOS Issues
+```bash
+# If you get "command not found" errors
+export PATH="/usr/local/bin:$PATH"
+
+# If npm permissions are denied
+sudo chown -R $(whoami) /usr/local/lib/node_modules
+```
+
+#### Windows Issues
+```bash
+# If PowerShell execution is blocked
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# If ports are blocked by Windows Firewall
+# Allow Node.js through Windows Firewall
+```
+
+#### Linux Issues
+```bash
+# If you get EACCES errors
+sudo chown -R $(whoami) ~/.npm
+sudo chown -R $(whoami) /usr/local/lib/node_modules
+
+# If ports are blocked
+sudo ufw allow 3000
+sudo ufw allow 5000
+```
+
+### Getting Help
+
+If you're still experiencing issues:
+
+1. **Check the logs**:
+   ```bash
+   cat service.log
+   cat backend.log  
+   cat frontend.log
+   ```
+
+2. **Verify your setup**:
+   ```bash
+   node --version  # Should be 16.0+
+   npm --version
+   ./service.sh status
+   ```
+
+3. **Try a clean restart**:
+   ```bash
+   ./service.sh force-stop
+   rm -rf node_modules client/node_modules
+   npm install
+   cd client && npm install && cd ..
+   ./service.sh start
+   ```
+
+4. **Check system resources**:
+   - Ensure you have at least 4GB RAM available
+   - Check that ports 3000 and 5000 are not blocked
+   - Verify you have write permissions in the project directory
 
 ## Usage
 
@@ -219,6 +522,50 @@ Feel free to contribute to this project by:
 - Improving the UI/UX
 - Fixing bugs
 - Adding tests
+
+## Quick Reference
+
+### Essential Commands
+```bash
+# Start the application
+./service.sh start
+
+# Stop the application  
+./service.sh stop
+
+# Check status
+./service.sh status
+
+# Force stop (emergency)
+./service.sh force-stop
+
+# Restart
+./service.sh restart
+```
+
+### URLs
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000
+
+### Key Files
+- **Service Script**: `service.sh`
+- **Backend**: `server/index.js`
+- **Frontend**: `client/src/`
+- **Database**: `expenses.db`
+- **Logs**: `service.log`, `backend.log`, `frontend.log`
+
+### Common Issues Quick Fix
+```bash
+# Port conflicts
+./service.sh force-stop
+
+# Module errors
+rm -rf node_modules client/node_modules
+npm install && cd client && npm install
+
+# Permission errors
+chmod +x service.sh
+```
 
 ## License
 

@@ -3,7 +3,7 @@ node_modules/
 client/node_modules/
 
 # Production builds
-client/build/
+# client/build/ - Now our main frontend, so we track it
 dist/
 
 # Environment variables

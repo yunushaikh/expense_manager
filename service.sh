@@ -1,13 +1,11 @@
 #!/bin/bash
 
 # Expense Manager Service Script
-# Usage: ./service.sh {start|stop|restart|status}
+# Usage: ./service.sh [start|stop|restart|status]
 
-SERVICE_NAME="expense-manager"
-PROJECT_DIR="/Users/yunushaikh/expense-manager"
-BACKEND_PID_FILE="$PROJECT_DIR/.backend.pid"
-FRONTEND_PID_FILE="$PROJECT_DIR/.frontend.pid"
-LOG_FILE="$PROJECT_DIR/service.log"
+APP_NAME="expense-manager"
+SERVER_PID_FILE="server.pid"
+PORT=5000
 
 # Colors for output
 RED='\033[0;31m'
@@ -16,300 +14,244 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-log() {
-    echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1" | tee -a "$LOG_FILE"
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1"
 }
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1" | tee -a "$LOG_FILE"
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1" | tee -a "$LOG_FILE"
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
 }
 
-warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1" | tee -a "$LOG_FILE"
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
-check_dependencies() {
-    if ! command -v node &> /dev/null; then
-        error "Node.js is not installed. Please install Node.js first."
-        exit 1
-    fi
-
-    if ! command -v npm &> /dev/null; then
-        error "npm is not installed. Please install npm first."
-        exit 1
-    fi
-}
-
-install_dependencies() {
-    log "Checking dependencies..."
-    
-    if [ ! -d "$PROJECT_DIR/node_modules" ]; then
-        log "Installing backend dependencies..."
-        cd "$PROJECT_DIR" && npm install
-    fi
-
-    if [ ! -d "$PROJECT_DIR/client/node_modules" ]; then
-        log "Installing frontend dependencies..."
-        cd "$PROJECT_DIR/client" && npm install
-    fi
-}
-
-start_backend() {
-    if [ -f "$BACKEND_PID_FILE" ] && kill -0 $(cat "$BACKEND_PID_FILE") 2>/dev/null; then
-        warning "Backend server is already running (PID: $(cat $BACKEND_PID_FILE))"
-        return 0
-    fi
-
-    log "Starting backend server..."
-    cd "$PROJECT_DIR"
-    nohup node server/index.js > "$PROJECT_DIR/backend.log" 2>&1 &
-    BACKEND_PID=$!
-    echo $BACKEND_PID > "$BACKEND_PID_FILE"
-    
-    # Wait a moment to check if it started successfully
-    sleep 2
-    if kill -0 $BACKEND_PID 2>/dev/null; then
-        success "Backend server started (PID: $BACKEND_PID)"
+# Function to check if port is in use
+check_port() {
+    local port=$1
+    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
         return 0
     else
-        error "Failed to start backend server"
-        rm -f "$BACKEND_PID_FILE"
         return 1
     fi
 }
 
-start_frontend() {
-    if [ -f "$FRONTEND_PID_FILE" ] && kill -0 $(cat "$FRONTEND_PID_FILE") 2>/dev/null; then
-        warning "Frontend server is already running (PID: $(cat $FRONTEND_PID_FILE))"
-        return 0
-    fi
-
-    log "Starting frontend server..."
-    cd "$PROJECT_DIR/client"
-    nohup npm start > "$PROJECT_DIR/frontend.log" 2>&1 &
-    FRONTEND_PID=$!
-    echo $FRONTEND_PID > "$FRONTEND_PID_FILE"
-    
-    # Wait a moment to check if it started successfully
-    sleep 3
-    if kill -0 $FRONTEND_PID 2>/dev/null; then
-        success "Frontend server started (PID: $FRONTEND_PID)"
-        return 0
-    else
-        error "Failed to start frontend server"
-        rm -f "$FRONTEND_PID_FILE"
-        return 1
-    fi
+# Function to get PID using port
+get_pid_by_port() {
+    local port=$1
+    lsof -ti:$port 2>/dev/null
 }
 
-stop_backend() {
-  if [ ! -f "$BACKEND_PID_FILE" ]; then
-    warning "Backend server PID file not found"
-  else
-    BACKEND_PID=$(cat "$BACKEND_PID_FILE")
-    if kill -0 $BACKEND_PID 2>/dev/null; then
-      log "Stopping backend server (PID: $BACKEND_PID)..."
-      kill $BACKEND_PID
-      sleep 2
-      
-      if kill -0 $BACKEND_PID 2>/dev/null; then
-        warning "Backend server didn't stop gracefully, force killing..."
-        kill -9 $BACKEND_PID
-      fi
-      
-      success "Backend server stopped"
-    else
-      warning "Backend server was not running"
-    fi
-  fi
-  
-  # Force kill any process using port 5000
-  local port5000_pids=$(lsof -ti :5000 2>/dev/null)
-  if [ ! -z "$port5000_pids" ]; then
-    log "Force killing processes using port 5000: $port5000_pids"
-    echo "$port5000_pids" | xargs kill -9 2>/dev/null
-    success "Port 5000 cleared"
-  fi
-  
-  rm -f "$BACKEND_PID_FILE"
-}
-
-stop_frontend() {
-  if [ ! -f "$FRONTEND_PID_FILE" ]; then
-    warning "Frontend server PID file not found"
-  else
-    FRONTEND_PID=$(cat "$FRONTEND_PID_FILE")
-    if kill -0 $FRONTEND_PID 2>/dev/null; then
-      log "Stopping frontend server (PID: $FRONTEND_PID)..."
-      kill $FRONTEND_PID
-      sleep 2
-      
-      if kill -0 $FRONTEND_PID 2>/dev/null; then
-        warning "Frontend server didn't stop gracefully, force killing..."
-        kill -9 $FRONTEND_PID
-      fi
-      
-      success "Frontend server stopped"
-    else
-      warning "Frontend server was not running"
-    fi
-  fi
-  
-  # Force kill any process using port 3000
-  local port3000_pids=$(lsof -ti :3000 2>/dev/null)
-  if [ ! -z "$port3000_pids" ]; then
-    log "Force killing processes using port 3000: $port3000_pids"
-    echo "$port3000_pids" | xargs kill -9 2>/dev/null
-    success "Port 3000 cleared"
-  fi
-  
-  rm -f "$FRONTEND_PID_FILE"
-}
-
+# Function to start the service
 start_service() {
-    log "Starting $SERVICE_NAME service..."
+    print_status "Starting $APP_NAME service..."
     
-    check_dependencies
-    install_dependencies
+    # Check if already running
+    if [ -f "$SERVER_PID_FILE" ]; then
+        local pid=$(cat "$SERVER_PID_FILE")
+        if ps -p $pid > /dev/null 2>&1; then
+            print_warning "$APP_NAME is already running (PID: $pid)"
+            return 0
+        else
+            print_warning "Stale PID file found, removing..."
+            rm -f "$SERVER_PID_FILE"
+        fi
+    fi
     
-    if start_backend && start_frontend; then
-        success "$SERVICE_NAME service started successfully!"
-        echo ""
-        echo "🌐 Frontend: http://localhost:3000"
-        echo "🔧 Backend API: http://localhost:5000"
-        echo "📝 Logs: $LOG_FILE"
-        echo "🛑 Stop with: ./service.sh stop"
+    # Check if port is already in use
+    if check_port $PORT; then
+        local existing_pid=$(get_pid_by_port $PORT)
+        print_error "Port $PORT is already in use by process $existing_pid"
+        print_error "Please stop the existing process or change the port"
+        return 1
+    fi
+    
+    # Start the server
+    print_status "Starting server on port $PORT..."
+    nohup node server.js > server.log 2>&1 &
+    local server_pid=$!
+    
+    # Save PID
+    echo $server_pid > "$SERVER_PID_FILE"
+    
+    # Wait a moment and check if it started successfully
+    sleep 2
+    if ps -p $server_pid > /dev/null 2>&1; then
+        print_success "$APP_NAME started successfully (PID: $server_pid)"
+        print_success "Server is running on http://localhost:$PORT"
+        print_status "Logs are being written to server.log"
     else
-        error "Failed to start $SERVICE_NAME service"
-        exit 1
+        print_error "Failed to start $APP_NAME"
+        rm -f "$SERVER_PID_FILE"
+        return 1
     fi
 }
 
+# Function to stop the service
 stop_service() {
-  log "Stopping $SERVICE_NAME service..."
-  
-  stop_frontend
-  stop_backend
-  
-  success "$SERVICE_NAME service stopped"
+    print_status "Stopping $APP_NAME service..."
+    
+    local stopped=false
+    
+    # Try to stop using PID file
+    if [ -f "$SERVER_PID_FILE" ]; then
+        local pid=$(cat "$SERVER_PID_FILE")
+        if ps -p $pid > /dev/null 2>&1; then
+            print_status "Stopping server (PID: $pid)..."
+            kill $pid
+            
+            # Wait for graceful shutdown
+            local count=0
+            while ps -p $pid > /dev/null 2>&1 && [ $count -lt 10 ]; do
+                sleep 1
+                count=$((count + 1))
+            done
+            
+            if ps -p $pid > /dev/null 2>&1; then
+                print_warning "Graceful shutdown failed, force killing..."
+                kill -9 $pid
+            fi
+            
+            stopped=true
+        else
+            print_warning "Process not found for PID $pid"
+        fi
+        rm -f "$SERVER_PID_FILE"
+    fi
+    
+    # Also try to stop by port
+    if check_port $PORT; then
+        local pid=$(get_pid_by_port $PORT)
+        if [ ! -z "$pid" ]; then
+            print_status "Stopping process using port $PORT (PID: $pid)..."
+            kill $pid
+            sleep 2
+            if ps -p $pid > /dev/null 2>&1; then
+                kill -9 $pid
+            fi
+            stopped=true
+        fi
+    fi
+    
+    if [ "$stopped" = true ]; then
+        print_success "$APP_NAME stopped successfully"
+    else
+        print_warning "$APP_NAME was not running"
+    fi
 }
 
-force_stop_service() {
-  log "Force stopping $SERVICE_NAME service..."
-  
-  # Kill all processes using our ports
-  local port3000_pids=$(lsof -ti :3000 2>/dev/null)
-  local port5000_pids=$(lsof -ti :5000 2>/dev/null)
-  
-  if [ ! -z "$port3000_pids" ]; then
-    log "Force killing processes using port 3000: $port3000_pids"
-    echo "$port3000_pids" | xargs kill -9 2>/dev/null
-    success "Port 3000 cleared"
-  fi
-  
-  if [ ! -z "$port5000_pids" ]; then
-    log "Force killing processes using port 5000: $port5000_pids"
-    echo "$port5000_pids" | xargs kill -9 2>/dev/null
-    success "Port 5000 cleared"
-  fi
-  
-  # Clean up PID files
-  rm -f "$BACKEND_PID_FILE" "$FRONTEND_PID_FILE"
-  
-  success "$SERVICE_NAME service force stopped"
-}
-
+# Function to restart the service
 restart_service() {
-    log "Restarting $SERVICE_NAME service..."
+    print_status "Restarting $APP_NAME service..."
     stop_service
     sleep 2
     start_service
 }
 
-status_service() {
-    echo "=== $SERVICE_NAME Service Status ==="
-    echo ""
+# Function to check service status
+check_status() {
+    print_status "Checking $APP_NAME service status..."
     
-    # Check backend
-    if [ -f "$BACKEND_PID_FILE" ] && kill -0 $(cat "$BACKEND_PID_FILE") 2>/dev/null; then
-        echo -e "Backend:  ${GREEN}Running${NC} (PID: $(cat $BACKEND_PID_FILE))"
-    else
-        echo -e "Backend:  ${RED}Stopped${NC}"
+    local running=false
+    local pid=""
+    
+    # Check using PID file
+    if [ -f "$SERVER_PID_FILE" ]; then
+        pid=$(cat "$SERVER_PID_FILE")
+        if ps -p $pid > /dev/null 2>&1; then
+            running=true
+        fi
     fi
     
-    # Check frontend
-    if [ -f "$FRONTEND_PID_FILE" ] && kill -0 $(cat "$FRONTEND_PID_FILE") 2>/dev/null; then
-        echo -e "Frontend: ${GREEN}Running${NC} (PID: $(cat $FRONTEND_PID_FILE))"
-    else
-        echo -e "Frontend: ${RED}Stopped${NC}"
+    # Check using port
+    if check_port $PORT; then
+        local port_pid=$(get_pid_by_port $PORT)
+        if [ ! -z "$port_pid" ]; then
+            if [ -z "$pid" ]; then
+                pid=$port_pid
+            fi
+            running=true
+        fi
     fi
     
-    echo ""
-    
-    # Check if ports are in use
-    if lsof -ti :5000 >/dev/null 2>&1; then
-        echo -e "Port 5000: ${GREEN}In Use${NC}"
+    if [ "$running" = true ]; then
+        print_success "$APP_NAME is running (PID: $pid)"
+        print_success "Server is accessible at http://localhost:$PORT"
+        
+        # Check if server is responding
+        if curl -s http://localhost:$PORT > /dev/null 2>&1; then
+            print_success "Server is responding to requests"
+        else
+            print_warning "Server is running but not responding to requests"
+        fi
     else
-        echo -e "Port 5000: ${RED}Free${NC}"
+        print_error "$APP_NAME is not running"
+        return 1
     fi
-    
-    if lsof -ti :3000 >/dev/null 2>&1; then
-        echo -e "Port 3000: ${GREEN}In Use${NC}"
-    else
-        echo -e "Port 3000: ${RED}Free${NC}"
-    fi
-    
-    echo ""
-    echo "Logs: $LOG_FILE"
-    echo "Backend logs: $PROJECT_DIR/backend.log"
-    echo "Frontend logs: $PROJECT_DIR/frontend.log"
 }
 
-cleanup() {
-    log "Cleaning up..."
-    stop_service
-    exit 0
+# Function to show logs
+show_logs() {
+    if [ -f "server.log" ]; then
+        print_status "Showing recent logs (last 50 lines):"
+        echo "----------------------------------------"
+        tail -50 server.log
+    else
+        print_warning "No log file found"
+    fi
 }
 
-# Handle script termination
-trap cleanup SIGINT SIGTERM
+# Function to show help
+show_help() {
+    echo "Expense Manager Service Script"
+    echo ""
+    echo "Usage: $0 [command]"
+    echo ""
+    echo "Commands:"
+    echo "  start     Start the expense manager service"
+    echo "  stop      Stop the expense manager service"
+    echo "  restart   Restart the expense manager service"
+    echo "  status    Check the service status"
+    echo "  logs      Show recent logs"
+    echo "  help      Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 start"
+    echo "  $0 status"
+    echo "  $0 logs"
+}
 
 # Main script logic
-case "${1:-}" in
+case "$1" in
     start)
         start_service
         ;;
     stop)
         stop_service
         ;;
-    force-stop)
-        force_stop_service
-        ;;
     restart)
         restart_service
         ;;
     status)
-        status_service
+        check_status
+        ;;
+    logs)
+        show_logs
+        ;;
+    help|--help|-h)
+        show_help
         ;;
     *)
-        echo "Usage: $0 {start|stop|force-stop|restart|status}"
+        print_error "Invalid command: $1"
         echo ""
-        echo "Commands:"
-        echo "  start      - Start the expense manager service"
-        echo "  stop       - Stop the expense manager service"
-        echo "  force-stop - Force stop all processes using ports 3000 and 5000"
-        echo "  restart    - Restart the expense manager service"
-        echo "  status     - Show service status"
-        echo ""
-        echo "Examples:"
-        echo "  ./service.sh start       # Start the service"
-        echo "  ./service.sh stop        # Stop the service"
-        echo "  ./service.sh force-stop  # Emergency stop (kills all port processes)"
-        echo "  ./service.sh status      # Check if running"
+        show_help
         exit 1
         ;;
 esac
+
+exit $?
