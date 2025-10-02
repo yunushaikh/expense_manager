@@ -9,6 +9,7 @@ class ExpenseManager {
         this.expenses = [];
         this.income = [];
         this.summary = { totalIncome: 0, totalExpenses: 0, netIncome: 0 };
+        this.yearlySummary = { totalIncome: 0, totalExpenses: 0, netIncome: 0 };
         
         this.init();
     }
@@ -37,6 +38,9 @@ class ExpenseManager {
                 this.currentMonth = parseInt(link.dataset.month);
                 this.updateCurrentMonthDisplay();
                 this.loadData();
+                
+                // Always reload current section data dynamically
+                this.reloadCurrentSection();
             });
         });
 
@@ -106,7 +110,8 @@ class ExpenseManager {
         await Promise.all([
             this.loadExpenses(),
             this.loadIncome(),
-            this.loadSummary()
+            this.loadSummary(),
+            this.loadYearlyData()
         ]);
         
         if (this.currentSection === 'dashboard') {
@@ -141,6 +146,16 @@ class ExpenseManager {
         }
     }
 
+    async loadYearlyData() {
+        try {
+            const response = await fetch(`/api/summary?year=${this.currentYear}`);
+            this.yearlySummary = await response.json();
+        } catch (error) {
+            console.error('Error loading yearly data:', error);
+            this.yearlySummary = { totalIncome: 0, totalExpenses: 0, netIncome: 0 };
+        }
+    }
+
     loadDashboardData() {
         this.updateSummaryCards();
         this.updateRecentTransactions();
@@ -148,11 +163,33 @@ class ExpenseManager {
         this.createCategoryChart();
     }
 
+    reloadCurrentSection() {
+        // Reload the current section's data after month change
+        if (this.currentSection === 'dashboard') {
+            this.loadDashboardData();
+        } else if (this.currentSection === 'expenses') {
+            this.loadExpensesTable();
+        } else if (this.currentSection === 'income') {
+            this.loadIncomeTable();
+        } else if (this.currentSection === 'reports') {
+            this.loadReports();
+        } else if (this.currentSection === 'analytics') {
+            this.loadAnalytics();
+        }
+    }
+
     updateSummaryCards() {
         document.getElementById('total-income').textContent = this.formatCurrency(this.summary.totalIncome);
         document.getElementById('total-expenses').textContent = this.formatCurrency(this.summary.totalExpenses);
         document.getElementById('net-income').textContent = this.formatCurrency(this.summary.netIncome);
         document.getElementById('total-transactions').textContent = this.expenses.length + this.income.length;
+        
+        // Update yearly summary cards
+        if (this.yearlySummary) {
+            document.getElementById('yearly-income').textContent = this.formatCurrency(this.yearlySummary.totalIncome);
+            document.getElementById('yearly-expenses').textContent = this.formatCurrency(this.yearlySummary.totalExpenses);
+            document.getElementById('yearly-balance').textContent = this.formatCurrency(this.yearlySummary.netIncome);
+        }
     }
 
     updateRecentTransactions() {
@@ -178,7 +215,7 @@ class ExpenseManager {
         });
     }
 
-    createMonthlyChart() {
+    async createMonthlyChart() {
         const ctx = document.getElementById('monthlyChart').getContext('2d');
         
         // Get last 6 months data
@@ -188,11 +225,30 @@ class ExpenseManager {
         
         for (let i = 5; i >= 0; i--) {
             const date = new Date(this.currentYear, this.currentMonth - 1 - i, 1);
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
             months.push(date.toLocaleDateString('en-US', { month: 'short' }));
             
-            // This would need API calls for each month - simplified for demo
-            incomeData.push(Math.random() * 5000);
-            expenseData.push(Math.random() * 4000);
+            // Fetch real data for each month
+            try {
+                const [expensesResponse, incomeResponse] = await Promise.all([
+                    fetch(`/api/expenses?month=${month}&year=${year}`),
+                    fetch(`/api/income?month=${month}&year=${year}`)
+                ]);
+                
+                const expenses = await expensesResponse.json();
+                const income = await incomeResponse.json();
+                
+                const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+                const totalIncome = income.reduce((sum, inc) => sum + parseFloat(inc.amount), 0);
+                
+                incomeData.push(totalIncome);
+                expenseData.push(totalExpenses);
+            } catch (error) {
+                console.error('Error fetching monthly data:', error);
+                incomeData.push(0);
+                expenseData.push(0);
+            }
         }
 
         new Chart(ctx, {
@@ -226,7 +282,7 @@ class ExpenseManager {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return '₹' + value.toLocaleString();
                             }
                         }
                     }
@@ -356,7 +412,7 @@ class ExpenseManager {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return '₹' + value.toLocaleString();
                             }
                         }
                     }
@@ -365,13 +421,41 @@ class ExpenseManager {
         });
     }
 
-    createTrendChart() {
+    async createTrendChart() {
         const ctx = document.getElementById('trendChart').getContext('2d');
         
-        // Simplified trend data
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-        const incomeData = [3000, 3500, 2800, 4200, 3800, 4500];
-        const expenseData = [2500, 3000, 2200, 3500, 3200, 3800];
+        // Get last 6 months data
+        const months = [];
+        const incomeData = [];
+        const expenseData = [];
+        
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(this.currentYear, this.currentMonth - 1 - i, 1);
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear();
+            months.push(date.toLocaleDateString('en-US', { month: 'short' }));
+            
+            // Fetch real data for each month
+            try {
+                const [expensesResponse, incomeResponse] = await Promise.all([
+                    fetch(`/api/expenses?month=${month}&year=${year}`),
+                    fetch(`/api/income?month=${month}&year=${year}`)
+                ]);
+                
+                const expenses = await expensesResponse.json();
+                const income = await incomeResponse.json();
+                
+                const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+                const totalIncome = income.reduce((sum, inc) => sum + parseFloat(inc.amount), 0);
+                
+                incomeData.push(totalIncome);
+                expenseData.push(totalExpenses);
+            } catch (error) {
+                console.error('Error fetching trend data:', error);
+                incomeData.push(0);
+                expenseData.push(0);
+            }
+        }
 
         new Chart(ctx, {
             type: 'line',
@@ -403,7 +487,7 @@ class ExpenseManager {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return '₹' + value.toLocaleString();
                             }
                         }
                     }
@@ -448,7 +532,7 @@ class ExpenseManager {
                         beginAtZero: true,
                         ticks: {
                             callback: function(value) {
-                                return '$' + value.toLocaleString();
+                                return '₹' + value.toLocaleString();
                             }
                         }
                     }
@@ -626,9 +710,9 @@ class ExpenseManager {
     }
 
     formatCurrency(amount) {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('en-IN', {
             style: 'currency',
-            currency: 'USD'
+            currency: 'INR'
         }).format(amount);
     }
 
