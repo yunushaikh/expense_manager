@@ -33,20 +33,23 @@ class ExpenseManager {
 
         // Month selection
         document.querySelectorAll('[data-month]').forEach(link => {
-            link.addEventListener('click', (e) => {
+            link.addEventListener('click', async (e) => {
                 e.preventDefault();
                 this.currentMonth = parseInt(link.dataset.month);
                 this.updateCurrentMonthDisplay();
-                this.loadData();
                 
-                // Always reload current section data dynamically
+                // Reload all data first
+                await this.loadData();
+                
+                // Then refresh current section data dynamically
                 this.reloadCurrentSection();
             });
         });
 
         // Refresh button
-        document.getElementById('refresh-data').addEventListener('click', () => {
-            this.loadData();
+        document.getElementById('refresh-data').addEventListener('click', async () => {
+            await this.loadData();
+            this.reloadCurrentSection();
         });
 
         // Form submissions
@@ -608,8 +611,11 @@ class ExpenseManager {
                 // Reset form
                 document.getElementById('expense-form').reset();
                 
-                // Reload data
-                this.loadData();
+                // Reload all data
+                await this.loadData();
+                
+                // Refresh current view
+                this.reloadCurrentSection();
                 
                 // Show success message
                 this.showAlert('Expense added successfully!', 'success');
@@ -650,8 +656,11 @@ class ExpenseManager {
                 // Reset form
                 document.getElementById('income-form').reset();
                 
-                // Reload data
-                this.loadData();
+                // Reload all data
+                await this.loadData();
+                
+                // Refresh current view
+                this.reloadCurrentSection();
                 
                 // Show success message
                 this.showAlert('Income added successfully!', 'success');
@@ -675,7 +684,12 @@ class ExpenseManager {
             });
 
             if (response.ok) {
-                this.loadData();
+                // Reload all data
+                await this.loadData();
+                
+                // Refresh current view
+                this.reloadCurrentSection();
+                
                 this.showAlert('Expense deleted successfully!', 'success');
             } else {
                 throw new Error('Failed to delete expense');
@@ -697,7 +711,12 @@ class ExpenseManager {
             });
 
             if (response.ok) {
-                this.loadData();
+                // Reload all data
+                await this.loadData();
+                
+                // Refresh current view
+                this.reloadCurrentSection();
+                
                 this.showAlert('Income deleted successfully!', 'success');
             } else {
                 throw new Error('Failed to delete income');
@@ -777,10 +796,12 @@ class ExpenseManager {
 
             if (response.ok) {
                 this.showAlert('Expense updated successfully!', 'success');
-                this.loadExpenses();
-                this.loadSummary();
-                this.loadYearlyData();
-                this.loadDashboardData();
+                
+                // Reload all data
+                await this.loadData();
+                
+                // Refresh current view
+                this.reloadCurrentSection();
                 
                 // Close modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
@@ -822,10 +843,12 @@ class ExpenseManager {
 
             if (response.ok) {
                 this.showAlert('Income updated successfully!', 'success');
-                this.loadIncome();
-                this.loadSummary();
-                this.loadYearlyData();
-                this.loadDashboardData();
+                
+                // Reload all data
+                await this.loadData();
+                
+                // Refresh current view
+                this.reloadCurrentSection();
                 
                 // Close modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('editIncomeModal'));
