@@ -62,6 +62,20 @@ class ExpenseManager {
         document.getElementById('addExpenseModal').addEventListener('show.bs.modal', () => {
             this.populateCategorySelect();
         });
+
+        // Update buttons
+        document.getElementById('update-expense').addEventListener('click', () => {
+            this.updateExpense();
+        });
+
+        document.getElementById('update-income').addEventListener('click', () => {
+            this.updateIncome();
+        });
+
+        // Edit modal events
+        document.getElementById('editExpenseModal').addEventListener('show.bs.modal', () => {
+            this.populateCategorySelect('edit-expense-category');
+        });
     }
 
     showSection(section) {
@@ -541,8 +555,8 @@ class ExpenseManager {
         });
     }
 
-    populateCategorySelect() {
-        const select = document.getElementById('expense-category');
+    populateCategorySelect(selectId = 'expense-category') {
+        const select = document.getElementById(selectId);
         select.innerHTML = '<option value="">Select Category</option>';
         
         this.categories.forEach(category => {
@@ -695,13 +709,134 @@ class ExpenseManager {
     }
 
     editExpense(id) {
-        // TODO: Implement edit functionality
-        alert('Edit functionality coming soon!');
+        const expense = this.expenses.find(exp => exp.id === id);
+        if (!expense) {
+            this.showAlert('Expense not found!', 'danger');
+            return;
+        }
+
+        // Populate the edit form
+        document.getElementById('edit-expense-id').value = expense.id;
+        document.getElementById('edit-expense-amount').value = expense.amount;
+        document.getElementById('edit-expense-category').value = expense.category;
+        document.getElementById('edit-expense-description').value = expense.description || '';
+        document.getElementById('edit-expense-date').value = expense.date;
+
+        // Populate category dropdown
+        this.populateCategorySelect('edit-expense-category');
+
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('editExpenseModal'));
+        modal.show();
     }
 
     editIncome(id) {
-        // TODO: Implement edit functionality
-        alert('Edit functionality coming soon!');
+        const income = this.income.find(inc => inc.id === id);
+        if (!income) {
+            this.showAlert('Income not found!', 'danger');
+            return;
+        }
+
+        // Populate the edit form
+        document.getElementById('edit-income-id').value = income.id;
+        document.getElementById('edit-income-amount').value = income.amount;
+        document.getElementById('edit-income-source').value = income.source;
+        document.getElementById('edit-income-description').value = income.description || '';
+        document.getElementById('edit-income-date').value = income.date;
+
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('editIncomeModal'));
+        modal.show();
+    }
+
+    async updateExpense() {
+        const id = document.getElementById('edit-expense-id').value;
+        const amount = parseFloat(document.getElementById('edit-expense-amount').value);
+        const category = document.getElementById('edit-expense-category').value;
+        const description = document.getElementById('edit-expense-description').value;
+        const date = document.getElementById('edit-expense-date').value;
+
+        if (!amount || !category || !date) {
+            this.showAlert('Please fill in all required fields.', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/expenses/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    amount,
+                    category,
+                    description,
+                    date
+                })
+            });
+
+            if (response.ok) {
+                this.showAlert('Expense updated successfully!', 'success');
+                this.loadExpenses();
+                this.loadSummary();
+                this.loadYearlyData();
+                this.loadDashboardData();
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editExpenseModal'));
+                modal.hide();
+            } else {
+                throw new Error('Failed to update expense');
+            }
+        } catch (error) {
+            console.error('Error updating expense:', error);
+            this.showAlert('Error updating expense. Please try again.', 'danger');
+        }
+    }
+
+    async updateIncome() {
+        const id = document.getElementById('edit-income-id').value;
+        const amount = parseFloat(document.getElementById('edit-income-amount').value);
+        const source = document.getElementById('edit-income-source').value;
+        const description = document.getElementById('edit-income-description').value;
+        const date = document.getElementById('edit-income-date').value;
+
+        if (!amount || !source || !date) {
+            this.showAlert('Please fill in all required fields.', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/income/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    amount,
+                    source,
+                    description,
+                    date
+                })
+            });
+
+            if (response.ok) {
+                this.showAlert('Income updated successfully!', 'success');
+                this.loadIncome();
+                this.loadSummary();
+                this.loadYearlyData();
+                this.loadDashboardData();
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editIncomeModal'));
+                modal.hide();
+            } else {
+                throw new Error('Failed to update income');
+            }
+        } catch (error) {
+            console.error('Error updating income:', error);
+            this.showAlert('Error updating income. Please try again.', 'danger');
+        }
     }
 
     getCategoryColor(categoryName) {
