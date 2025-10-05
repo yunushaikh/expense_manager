@@ -1032,7 +1032,14 @@ class ExpenseManager {
 
     // AI Feature 2: Smart Spending Insights
     showAIInsights() {
-        const modal = new bootstrap.Modal(document.getElementById('aiInsightsModal'));
+        console.log('AI Insights clicked!'); // Debug log
+        const modalElement = document.getElementById('aiInsightsModal');
+        if (!modalElement) {
+            console.error('AI Insights modal not found!');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
         
         // Generate insights
@@ -1332,3 +1339,9 @@ class ExpenseManager {
 
 // Initialize the application
 const app = new ExpenseManager();
+window.expenseManager = app;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    app.init();
+});
