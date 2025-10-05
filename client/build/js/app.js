@@ -1049,20 +1049,57 @@ class ExpenseManager {
     }
 
     generateAIInsights() {
+        console.log('Generating AI insights...'); // Debug log
         const insightsContent = document.getElementById('ai-insights-content');
         
-        // Analyze spending patterns
-        const analysis = this.analyzeSpendingPatterns();
+        if (!insightsContent) {
+            console.error('AI insights content element not found!');
+            return;
+        }
         
-        // Generate insights HTML
-        const insightsHTML = this.createInsightsHTML(analysis);
-        
-        insightsContent.innerHTML = insightsHTML;
+        try {
+            // First, show a simple test
+            insightsContent.innerHTML = `
+                <div class="alert alert-info">
+                    <h5>🤖 AI Insights Test</h5>
+                    <p>Testing AI insights generation...</p>
+                    <p>Total expenses: ${this.expenses.length}</p>
+                    <p>Current month: ${this.currentMonth}/${this.currentYear}</p>
+                </div>
+            `;
+            
+            // Wait a bit, then do the full analysis
+            setTimeout(() => {
+                console.log('Analyzing spending patterns...');
+                const analysis = this.analyzeSpendingPatterns();
+                console.log('Analysis completed:', analysis);
+                
+                console.log('Creating insights HTML...');
+                const insightsHTML = this.createInsightsHTML(analysis);
+                console.log('HTML generated, updating content...');
+                
+                insightsContent.innerHTML = insightsHTML;
+                console.log('AI insights generated successfully!');
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Error generating AI insights:', error);
+            insightsContent.innerHTML = `
+                <div class="alert alert-danger">
+                    <h5>Error generating insights</h5>
+                    <p>There was an error analyzing your spending data. Please try again.</p>
+                    <small>Error: ${error.message}</small>
+                </div>
+            `;
+        }
     }
 
     analyzeSpendingPatterns() {
+        console.log('Starting spending pattern analysis...');
         const currentMonth = this.currentMonth;
         const currentYear = this.currentYear;
+        console.log('Current month:', currentMonth, 'Current year:', currentYear);
+        console.log('Total expenses available:', this.expenses.length);
         
         // Get current month expenses
         const currentMonthExpenses = this.expenses.filter(expense => {
@@ -1070,6 +1107,7 @@ class ExpenseManager {
             return expenseDate.getMonth() + 1 === currentMonth && 
                    expenseDate.getFullYear() === currentYear;
         });
+        console.log('Current month expenses found:', currentMonthExpenses.length);
 
         // Get last 3 months for comparison
         const last3Months = [];
@@ -1095,6 +1133,9 @@ class ExpenseManager {
         // Calculate insights
         const currentMonthTotal = currentMonthExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
         const avgLast3Months = last3Months.reduce((sum, month) => sum + month.total, 0) / 3;
+        
+        console.log('Current month total:', currentMonthTotal);
+        console.log('Average last 3 months:', avgLast3Months);
         
         // Category analysis
         const categorySpending = {};
