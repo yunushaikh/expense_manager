@@ -11,6 +11,9 @@ class ExpenseManager {
         this.summary = { totalIncome: 0, totalExpenses: 0, netIncome: 0 };
         this.yearlySummary = { totalIncome: 0, totalExpenses: 0, netIncome: 0 };
         
+        // Initialize AI features
+        this.aiFeatures = new AIFeatures();
+        
         this.init();
     }
 
@@ -78,6 +81,30 @@ class ExpenseManager {
         // Edit modal events
         document.getElementById('editExpenseModal').addEventListener('show.bs.modal', () => {
             this.populateCategorySelect('edit-expense-category');
+        });
+
+        // AI Features
+        document.getElementById('save-ai-settings').addEventListener('click', () => {
+            this.saveAISettings();
+        });
+
+        document.getElementById('refresh-ai-insights').addEventListener('click', () => {
+            this.loadAIInsights();
+        });
+
+        document.getElementById('ask-ai-query').addEventListener('click', () => {
+            this.processAIQuery();
+        });
+
+        // AI Insights modal
+        document.getElementById('aiInsightsModal').addEventListener('show.bs.modal', () => {
+            this.loadAIInsights();
+        });
+
+        // AI Query modal
+        document.getElementById('aiQueryModal').addEventListener('show.bs.modal', () => {
+            document.getElementById('ai-query-response').style.display = 'none';
+            document.getElementById('ai-query-input').value = '';
         });
     }
 
@@ -900,6 +927,106 @@ class ExpenseManager {
                 alertDiv.parentNode.removeChild(alertDiv);
             }
         }, 5000);
+    }
+
+    // AI Features
+    async saveAISettings() {
+        const apiKey = document.getElementById('openai-api-key').value.trim();
+        
+        if (apiKey) {
+            await this.aiFeatures.init(apiKey);
+            localStorage.setItem('openai_api_key', apiKey);
+            this.showAlert('AI settings saved successfully!', 'success');
+        } else {
+            await this.aiFeatures.init();
+            localStorage.removeItem('openai_api_key');
+            this.showAlert('Using basic AI features (no API key)', 'info');
+        }
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('aiSettingsModal'));
+        modal.hide();
+    }
+
+    async loadAIInsights() {
+        const content = document.getElementById('ai-insights-content');
+        content.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading AI insights...</span></div></div>';
+
+        try {
+            // Generate insights
+            const insights = this.aiFeatures.generateSpendingInsights(this.expenses, this.income);
+            
+            // Generate budget forecast
+            const forecast = this.aiFeatures.generateBudgetForecast(this.expenses, 3);
+            
+            let html = '<div class="row">';
+            
+            // Insights
+            html += '<div class="col-md-6">';
+            html += '<h5 class="mb-3">📊 Spending Insights</h5>';
+            
+            if (insights.length === 0) {
+                html += '<div class="alert alert-info">Add some expenses to get AI insights!</div>';
+            } else {
+                insights.forEach(insight => {
+                    html += `<div class="card mb-3">`;
+                    html += `<div class="card-body">`;
+                    html += `<h6 class="card-title">${insight.message}</h6>`;
+                    html += `<p class="card-text text-muted">${insight.suggestion}</p>`;
+                    html += `</div></div>`;
+                });
+            }
+            html += '</div>';
+            
+            // Forecast
+            html += '<div class="col-md-6">';
+            html += '<h5 class="mb-3">🔮 Budget Forecast</h5>';
+            
+            if (forecast.length === 0) {
+                html += '<div class="alert alert-info">Add more expenses to get accurate forecasts!</div>';
+            } else {
+                forecast.forEach(item => {
+                    const confidence = Math.round(item.confidence * 100);
+                    html += `<div class="card mb-3">`;
+                    html += `<div class="card-body">`;
+                    html += `<h6 class="card-title">${item.month}</h6>`;
+                    html += `<p class="card-text">Predicted: <strong>${this.formatCurrency(item.predictedAmount)}</strong></p>`;
+                    html += `<small class="text-muted">Confidence: ${confidence}%</small>`;
+                    html += `</div></div>`;
+                });
+            }
+            html += '</div>';
+            
+            html += '</div>';
+            
+            content.innerHTML = html;
+        } catch (error) {
+            console.error('Error loading AI insights:', error);
+            content.innerHTML = '<div class="alert alert-danger">Error loading AI insights. Please try again.</div>';
+        }
+    }
+
+    async processAIQuery() {
+        const query = document.getElementById('ai-query-input').value.trim();
+        const responseDiv = document.getElementById('ai-query-response');
+        const answerDiv = document.getElementById('ai-query-answer');
+        
+        if (!query) {
+            this.showAlert('Please enter a question!', 'warning');
+            return;
+        }
+
+        // Show loading
+        answerDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div> Loading...</div>';
+        responseDiv.style.display = 'block';
+
+        try {
+            const response = await this.aiFeatures.processNaturalLanguageQuery(query, this.expenses, this.income);
+            answerDiv.innerHTML = response;
+        } catch (error) {
+            console.error('Error processing AI query:', error);
+            answerDiv.innerHTML = '<div class="alert alert-danger">Error processing your question. Please try again.</div>';
+        }
     }
 }
 

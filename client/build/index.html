@@ -139,6 +139,12 @@
                                     <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                                 </button>
                             </div>
+                            <button type="button" class="btn btn-sm btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#aiInsightsModal">
+                                <i class="bi bi-robot me-1"></i>AI Insights
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#aiSettingsModal">
+                                <i class="bi bi-gear me-1"></i>AI Settings
+                            </button>
                         </div>
                     </div>
 
@@ -338,8 +344,14 @@
                     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                         <h1 class="h2">Expenses</h1>
                         <div class="btn-toolbar mb-2 mb-md-0">
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+                            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addExpenseModal">
                                 <i class="bi bi-plus-circle me-1"></i>Add Expense
+                            </button>
+                            <button type="button" class="btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#aiInsightsModal">
+                                <i class="bi bi-robot me-1"></i>AI Insights
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#aiQueryModal">
+                                <i class="bi bi-chat-dots me-1"></i>Ask AI
                             </button>
                         </div>
                     </div>
@@ -371,8 +383,14 @@
                     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                         <h1 class="h2">Income</h1>
                         <div class="btn-toolbar mb-2 mb-md-0">
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
                                 <i class="bi bi-plus-circle me-1"></i>Add Income
+                            </button>
+                            <button type="button" class="btn btn-outline-info me-2" data-bs-toggle="modal" data-bs-target="#aiInsightsModal">
+                                <i class="bi bi-robot me-1"></i>AI Insights
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#aiQueryModal">
+                                <i class="bi bi-chat-dots me-1"></i>Ask AI
                             </button>
                         </div>
                     </div>
@@ -602,8 +620,100 @@
         </div>
     </div>
 
+    <!-- AI Settings Modal -->
+    <div class="modal fade" id="aiSettingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🤖 AI Features Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="openai-api-key" class="form-label">OpenAI API Key (Optional)</label>
+                        <input type="password" class="form-control" id="openai-api-key" 
+                               placeholder="sk-... (Leave empty to use basic AI features)">
+                        <div class="form-text">Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a></div>
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>AI Features Available:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Smart expense categorization</li>
+                            <li>Spending insights and recommendations</li>
+                            <li>Budget forecasting</li>
+                            <li>Natural language queries</li>
+                            <li>Anomaly detection</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-ai-settings">Save AI Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insights Panel -->
+    <div class="modal fade" id="aiInsightsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🤖 AI Insights & Recommendations</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="ai-insights-content">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading AI insights...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="refresh-ai-insights">Refresh Insights</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Query Panel -->
+    <div class="modal fade" id="aiQueryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🤖 Ask AI About Your Finances</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="ai-query-input" class="form-label">Ask a question about your expenses or income:</label>
+                        <textarea class="form-control" id="ai-query-input" rows="3" 
+                                  placeholder="e.g., What's my biggest expense category? Show me coffee expenses from last month"></textarea>
+                    </div>
+                    <div id="ai-query-response" class="mt-3" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">AI Response:</h6>
+                                <div id="ai-query-answer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="ask-ai-query">Ask AI</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AI Features -->
+    <script src="ai-features.js"></script>
     <!-- Custom JS -->
     <script src="js/app.js"></script>
 </body>
