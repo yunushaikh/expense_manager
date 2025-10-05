@@ -1148,7 +1148,15 @@ class ExpenseManager {
                      currentMonthTotal < avgLast3Months ? 'decreasing' : 'stable';
 
         // Generate recommendations
-        const recommendations = this.generateRecommendations(analysis);
+        const recommendations = this.generateRecommendations({
+            currentMonthTotal,
+            avgLast3Months,
+            trend,
+            topCategories,
+            highestExpense,
+            categorySpending,
+            currentMonthExpenses
+        });
 
         return {
             currentMonthTotal,
