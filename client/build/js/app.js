@@ -256,42 +256,44 @@ class ExpenseManager {
     createOverallChart() {
         const ctx = document.getElementById('monthlyChart').getContext('2d');
         
-        // Group data by month for the current year
+        // Initialize all 12 months with zero data
         const monthlyData = {};
+        for (let month = 1; month <= 12; month++) {
+            const monthKey = `${this.currentYear}-${String(month).padStart(2, '0')}`;
+            monthlyData[monthKey] = { income: 0, expenses: 0, month: month - 1 };
+        }
         
         // Process expenses
         this.expenses.forEach(expense => {
             const date = new Date(expense.date);
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            if (!monthlyData[monthKey]) {
-                monthlyData[monthKey] = { income: 0, expenses: 0, month: date.getMonth() };
+            if (monthlyData[monthKey]) {
+                monthlyData[monthKey].expenses += parseFloat(expense.amount);
             }
-            monthlyData[monthKey].expenses += parseFloat(expense.amount);
         });
         
         // Process income
         this.income.forEach(income => {
             const date = new Date(income.date);
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            if (!monthlyData[monthKey]) {
-                monthlyData[monthKey] = { income: 0, expenses: 0, month: date.getMonth() };
+            if (monthlyData[monthKey]) {
+                monthlyData[monthKey].income += parseFloat(income.amount);
             }
-            monthlyData[monthKey].income += parseFloat(income.amount);
         });
         
-        // Sort by month and prepare data
-        const sortedMonths = Object.keys(monthlyData).sort();
+        // Prepare data for all 12 months
         const months = [];
         const incomeData = [];
         const expenseData = [];
         
-        sortedMonths.forEach(monthKey => {
+        for (let month = 1; month <= 12; month++) {
+            const monthKey = `${this.currentYear}-${String(month).padStart(2, '0')}`;
             const data = monthlyData[monthKey];
-            const date = new Date(this.currentYear, data.month, 1);
+            const date = new Date(this.currentYear, month - 1, 1);
             months.push(date.toLocaleDateString('en-US', { month: 'short' }));
             incomeData.push(data.income);
             expenseData.push(data.expenses);
-        });
+        }
 
         new Chart(ctx, {
             type: 'line',
