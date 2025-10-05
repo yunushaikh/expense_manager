@@ -1815,6 +1815,282 @@ class ExpenseManager {
         }, 1000);
     }
 
+    // AI Feature 4: Natural Language Queries
+    showAIChat() {
+        console.log('AI Chat clicked!');
+        const modalElement = document.getElementById('aiChatModal');
+        if (!modalElement) {
+            console.error('AI Chat modal not found!');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        
+        // Focus on input
+        setTimeout(() => {
+            document.getElementById('ai-chat-input').focus();
+        }, 500);
+    }
+
+    sendAIChatMessage() {
+        const input = document.getElementById('ai-chat-input');
+        const message = input.value.trim();
+        
+        if (!message) return;
+        
+        // Clear input
+        input.value = '';
+        
+        // Add user message to chat
+        this.addChatMessage(message, 'user');
+        
+        // Show typing indicator
+        this.addTypingIndicator();
+        
+        // Process the query
+        setTimeout(() => {
+            this.processAIQuery(message);
+        }, 1000);
+    }
+
+    askQuickQuestion(question) {
+        document.getElementById('ai-chat-input').value = question;
+        this.sendAIChatMessage();
+    }
+
+    addChatMessage(message, sender) {
+        const chatMessages = document.getElementById('ai-chat-messages');
+        
+        // Remove welcome message if it exists
+        const welcomeMessage = chatMessages.querySelector('.text-center.text-muted');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `mb-3 ${sender === 'user' ? 'text-end' : 'text-start'}`;
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = `d-inline-block p-3 rounded ${sender === 'user' ? 'bg-primary text-white' : 'bg-light border'}`;
+        messageContent.style.maxWidth = '80%';
+        
+        if (sender === 'ai') {
+            messageContent.innerHTML = `
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-robot me-2"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+        } else {
+            messageContent.innerHTML = `
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-person me-2"></i>
+                    <div>${message}</div>
+                </div>
+            `;
+        }
+        
+        messageDiv.appendChild(messageContent);
+        chatMessages.appendChild(messageDiv);
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    addTypingIndicator() {
+        const chatMessages = document.getElementById('ai-chat-messages');
+        
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'mb-3 text-start';
+        typingDiv.id = 'typing-indicator';
+        
+        typingDiv.innerHTML = `
+            <div class="d-inline-block p-3 rounded bg-light border">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-robot me-2"></i>
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        chatMessages.appendChild(typingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    removeTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+
+    processAIQuery(query) {
+        console.log('Processing AI query:', query);
+        
+        // Remove typing indicator
+        this.removeTypingIndicator();
+        
+        // Analyze the query and generate response
+        const response = this.analyzeQuery(query);
+        
+        // Add AI response to chat
+        this.addChatMessage(response, 'ai');
+    }
+
+    analyzeQuery(query) {
+        const lowerQuery = query.toLowerCase();
+        
+        // Get current month data
+        const currentMonth = this.currentMonth;
+        const currentYear = this.currentYear;
+        
+        const currentMonthExpenses = this.expenses.filter(expense => {
+            const expenseDate = new Date(expense.date);
+            return expenseDate.getMonth() + 1 === currentMonth && 
+                   expenseDate.getFullYear() === currentYear;
+        });
+        
+        const currentMonthIncome = this.income.filter(income => {
+            const incomeDate = new Date(income.date);
+            return incomeDate.getMonth() + 1 === currentMonth && 
+                   incomeDate.getFullYear() === currentYear;
+        });
+        
+        const totalExpenses = currentMonthExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+        const totalIncome = currentMonthIncome.reduce((sum, inc) => sum + parseFloat(inc.amount), 0);
+        const netIncome = totalIncome - totalExpenses;
+        
+        // Monthly spending queries
+        if (lowerQuery.includes('how much') && lowerQuery.includes('spend') && lowerQuery.includes('month')) {
+            return `You spent <strong>₹${totalExpenses.toFixed(2)}</strong> this month (${this.getMonthName(currentMonth)} ${currentYear}). Your net income is <strong>₹${netIncome.toFixed(2)}</strong> after ${totalExpenses.toFixed(2)} in expenses.`;
+        }
+        
+        if (lowerQuery.includes('monthly spending') || lowerQuery.includes('spending this month')) {
+            return `Your monthly spending for ${this.getMonthName(currentMonth)} ${currentYear} is <strong>₹${totalExpenses.toFixed(2)}</strong>. You made ${currentMonthExpenses.length} transactions this month.`;
+        }
+        
+        // Category queries
+        if (lowerQuery.includes('biggest') && (lowerQuery.includes('category') || lowerQuery.includes('expense'))) {
+            const categorySpending = {};
+            currentMonthExpenses.forEach(expense => {
+                const category = expense.category || 'Other';
+                categorySpending[category] = (categorySpending[category] || 0) + parseFloat(expense.amount);
+            });
+            
+            const topCategory = Object.entries(categorySpending)
+                .sort(([,a], [,b]) => b - a)[0];
+            
+            if (topCategory) {
+                const percentage = (topCategory[1] / totalExpenses * 100).toFixed(1);
+                return `Your biggest expense category is <strong>${topCategory[0]}</strong> with ₹${topCategory[1].toFixed(2)} (${percentage}% of total spending).`;
+            }
+            return "I don't have enough data to determine your biggest expense category yet.";
+        }
+        
+        // Specific category queries
+        const categoryKeywords = {
+            'groceries': ['grocery', 'groceries', 'food', 'vegetables', 'milk', 'rice'],
+            'transportation': ['transport', 'uber', 'taxi', 'fuel', 'gas', 'petrol'],
+            'entertainment': ['entertainment', 'movie', 'cinema', 'netflix', 'game'],
+            'healthcare': ['health', 'medical', 'doctor', 'medicine', 'hospital'],
+            'kids': ['kids', 'children', 'school', 'project', 'toys'],
+            'breakfast': ['breakfast', 'morning', 'idli', 'dosa', 'snacks']
+        };
+        
+        for (const [category, keywords] of Object.entries(categoryKeywords)) {
+            if (keywords.some(keyword => lowerQuery.includes(keyword))) {
+                const categoryExpenses = currentMonthExpenses.filter(exp => 
+                    (exp.category || '').toLowerCase().includes(category.toLowerCase())
+                );
+                const categoryTotal = categoryExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+                
+                if (categoryTotal > 0) {
+                    const percentage = (categoryTotal / totalExpenses * 100).toFixed(1);
+                    return `You spent <strong>₹${categoryTotal.toFixed(2)}</strong> on ${category} this month (${percentage}% of total spending). You made ${categoryExpenses.length} transactions in this category.`;
+                } else {
+                    return `You haven't spent anything on ${category} this month.`;
+                }
+            }
+        }
+        
+        // Daily average queries
+        if (lowerQuery.includes('daily') && lowerQuery.includes('average')) {
+            const dailyAverage = totalExpenses / 30;
+            return `Your average daily spending is <strong>₹${dailyAverage.toFixed(2)}</strong> this month. You make about ${(currentMonthExpenses.length / 30).toFixed(1)} transactions per day.`;
+        }
+        
+        // Income queries
+        if (lowerQuery.includes('income') || lowerQuery.includes('earn')) {
+            return `Your total income this month is <strong>₹${totalIncome.toFixed(2)}</strong>. Your net income (after expenses) is <strong>₹${netIncome.toFixed(2)}</strong>.`;
+        }
+        
+        // Transaction count queries
+        if (lowerQuery.includes('how many') && lowerQuery.includes('transaction')) {
+            return `You made <strong>${currentMonthExpenses.length}</strong> expense transactions this month, totaling ₹${totalExpenses.toFixed(2)}.`;
+        }
+        
+        // Savings queries
+        if (lowerQuery.includes('save') || lowerQuery.includes('saving')) {
+            if (netIncome > 0) {
+                return `You're saving <strong>₹${netIncome.toFixed(2)}</strong> this month! That's a savings rate of ${((netIncome / totalIncome) * 100).toFixed(1)}%. Great job!`;
+            } else {
+                return `You're spending more than you earn this month (₹${Math.abs(netIncome).toFixed(2)} over budget). Consider reducing expenses or increasing income.`;
+            }
+        }
+        
+        // Budget queries
+        if (lowerQuery.includes('budget') || lowerQuery.includes('should i spend')) {
+            const avgDaily = totalExpenses / 30;
+            const remainingDays = 30 - new Date().getDate();
+            const projectedMonthly = totalExpenses + (avgDaily * remainingDays);
+            
+            return `Based on your current spending pattern, you're on track to spend <strong>₹${projectedMonthly.toFixed(2)}</strong> this month. Your daily average is ₹${avgDaily.toFixed(2)}. ${remainingDays} days remaining in the month.`;
+        }
+        
+        // Help queries
+        if (lowerQuery.includes('help') || lowerQuery.includes('what can you do')) {
+            return `I can help you with:<br>
+            • <strong>Monthly spending</strong> - "How much did I spend this month?"<br>
+            • <strong>Category analysis</strong> - "What's my biggest expense category?"<br>
+            • <strong>Specific categories</strong> - "How much on groceries?"<br>
+            • <strong>Daily averages</strong> - "What's my daily spending?"<br>
+            • <strong>Income analysis</strong> - "How much did I earn?"<br>
+            • <strong>Savings tracking</strong> - "Am I saving money?"<br>
+            • <strong>Budget planning</strong> - "Should I spend more?"<br><br>
+            Just ask me anything about your finances!`;
+        }
+        
+        // Default response
+        return `I understand you're asking about "${query}". I can help you analyze your spending patterns, income, categories, and more. Try asking specific questions like:<br>
+        • "How much did I spend this month?"<br>
+        • "What's my biggest expense category?"<br>
+        • "How much on groceries?"<br>
+        • "What's my daily average spending?"<br><br>
+        What would you like to know about your finances?`;
+    }
+
+    getMonthName(monthNumber) {
+        const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+        return months[monthNumber - 1];
+    }
+
+    clearAIChat() {
+        const chatMessages = document.getElementById('ai-chat-messages');
+        chatMessages.innerHTML = `
+            <div class="text-center text-muted">
+                <i class="bi bi-robot fs-1"></i>
+                <p class="mt-2">Hi! I'm your AI Financial Assistant. Ask me anything about your expenses, income, or financial patterns!</p>
+                <small>Try asking: "How much did I spend on groceries this month?" or "What's my biggest expense category?"</small>
+            </div>
+        `;
+    }
+
     showAlert(message, type) {
         // Create alert element
         const alertDiv = document.createElement('div');
