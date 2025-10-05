@@ -1030,6 +1030,284 @@ class ExpenseManager {
         }
     }
 
+    // AI Feature 2: Smart Spending Insights
+    showAIInsights() {
+        const modal = new bootstrap.Modal(document.getElementById('aiInsightsModal'));
+        modal.show();
+        
+        // Generate insights
+        setTimeout(() => {
+            this.generateAIInsights();
+        }, 1000);
+    }
+
+    generateAIInsights() {
+        const insightsContent = document.getElementById('ai-insights-content');
+        
+        // Analyze spending patterns
+        const analysis = this.analyzeSpendingPatterns();
+        
+        // Generate insights HTML
+        const insightsHTML = this.createInsightsHTML(analysis);
+        
+        insightsContent.innerHTML = insightsHTML;
+    }
+
+    analyzeSpendingPatterns() {
+        const currentMonth = this.currentMonth;
+        const currentYear = this.currentYear;
+        
+        // Get current month expenses
+        const currentMonthExpenses = this.expenses.filter(expense => {
+            const expenseDate = new Date(expense.date);
+            return expenseDate.getMonth() + 1 === currentMonth && 
+                   expenseDate.getFullYear() === currentYear;
+        });
+
+        // Get last 3 months for comparison
+        const last3Months = [];
+        for (let i = 1; i <= 3; i++) {
+            const month = currentMonth - i;
+            const year = month <= 0 ? currentYear - 1 : currentYear;
+            const actualMonth = month <= 0 ? month + 12 : month;
+            
+            const monthExpenses = this.expenses.filter(expense => {
+                const expenseDate = new Date(expense.date);
+                return expenseDate.getMonth() + 1 === actualMonth && 
+                       expenseDate.getFullYear() === year;
+            });
+            
+            last3Months.push({
+                month: actualMonth,
+                year: year,
+                expenses: monthExpenses,
+                total: monthExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0)
+            });
+        }
+
+        // Calculate insights
+        const currentMonthTotal = currentMonthExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+        const avgLast3Months = last3Months.reduce((sum, month) => sum + month.total, 0) / 3;
+        
+        // Category analysis
+        const categorySpending = {};
+        currentMonthExpenses.forEach(expense => {
+            const category = expense.category || 'Other';
+            categorySpending[category] = (categorySpending[category] || 0) + parseFloat(expense.amount);
+        });
+
+        // Find top spending categories
+        const topCategories = Object.entries(categorySpending)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 3);
+
+        // Find highest single expense
+        const highestExpense = currentMonthExpenses.reduce((max, exp) => 
+            parseFloat(exp.amount) > parseFloat(max.amount) ? exp : max, 
+            { amount: 0, description: 'None', category: 'N/A' }
+        );
+
+        // Calculate spending trend
+        const trend = currentMonthTotal > avgLast3Months ? 'increasing' : 
+                     currentMonthTotal < avgLast3Months ? 'decreasing' : 'stable';
+
+        // Generate recommendations
+        const recommendations = this.generateRecommendations(analysis);
+
+        return {
+            currentMonthTotal,
+            avgLast3Months,
+            trend,
+            topCategories,
+            highestExpense,
+            categorySpending,
+            recommendations,
+            currentMonthExpenses
+        };
+    }
+
+    generateRecommendations(analysis) {
+        const recommendations = [];
+        
+        // Spending trend recommendation
+        if (analysis.trend === 'increasing') {
+            recommendations.push({
+                type: 'warning',
+                title: 'Spending Trend Alert',
+                message: `Your spending is ${((analysis.currentMonthTotal - analysis.avgLast3Months) / analysis.avgLast3Months * 100).toFixed(1)}% higher than your 3-month average. Consider reviewing your expenses.`
+            });
+        } else if (analysis.trend === 'decreasing') {
+            recommendations.push({
+                type: 'success',
+                title: 'Great Job!',
+                message: `Your spending is ${((analysis.avgLast3Months - analysis.currentMonthTotal) / analysis.avgLast3Months * 100).toFixed(1)}% lower than your 3-month average. Keep it up!`
+            });
+        }
+
+        // Top category recommendation
+        if (analysis.topCategories.length > 0) {
+            const [topCategory, amount] = analysis.topCategories[0];
+            const percentage = (amount / analysis.currentMonthTotal * 100).toFixed(1);
+            recommendations.push({
+                type: 'info',
+                title: 'Top Spending Category',
+                message: `${topCategory} accounts for ${percentage}% of your spending (₹${amount.toFixed(2)}). Consider if this aligns with your priorities.`
+            });
+        }
+
+        // High expense recommendation
+        if (parseFloat(analysis.highestExpense.amount) > analysis.currentMonthTotal * 0.3) {
+            recommendations.push({
+                type: 'warning',
+                title: 'High Single Expense',
+                message: `Your highest expense (${analysis.highestExpense.description} - ₹${analysis.highestExpense.amount}) represents a significant portion of your monthly spending.`
+            });
+        }
+
+        // Category diversity recommendation
+        const categoryCount = Object.keys(analysis.categorySpending).length;
+        if (categoryCount < 3) {
+            recommendations.push({
+                type: 'info',
+                title: 'Spending Diversity',
+                message: `You're spending in only ${categoryCount} categories. Consider diversifying your expenses for better financial health.`
+            });
+        }
+
+        return recommendations;
+    }
+
+    createInsightsHTML(analysis) {
+        const trendIcon = analysis.trend === 'increasing' ? '📈' : 
+                         analysis.trend === 'decreasing' ? '📉' : '➡️';
+        const trendColor = analysis.trend === 'increasing' ? 'text-warning' : 
+                          analysis.trend === 'decreasing' ? 'text-success' : 'text-info';
+
+        return `
+            <div class="row">
+                <!-- Spending Overview -->
+                <div class="col-md-6 mb-4">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">📊 Spending Overview</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h4 class="text-primary">₹${analysis.currentMonthTotal.toFixed(2)}</h4>
+                                    <small class="text-muted">This Month</small>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-secondary">₹${analysis.avgLast3Months.toFixed(2)}</h4>
+                                    <small class="text-muted">3-Month Avg</small>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="text-center">
+                                <span class="badge bg-info">${trendIcon} ${analysis.trend.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Categories -->
+                <div class="col-md-6 mb-4">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">🏆 Top Categories</h6>
+                        </div>
+                        <div class="card-body">
+                            ${analysis.topCategories.map(([category, amount], index) => `
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>${index + 1}. ${category}</span>
+                                    <span class="badge bg-success">₹${amount.toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Highest Expense -->
+                <div class="col-md-6 mb-4">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">💸 Highest Expense</h6>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="text-warning">₹${parseFloat(analysis.highestExpense.amount).toFixed(2)}</h5>
+                            <p class="mb-1"><strong>${analysis.highestExpense.description}</strong></p>
+                            <small class="text-muted">Category: ${analysis.highestExpense.category}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Recommendations -->
+                <div class="col-md-6 mb-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">🤖 AI Recommendations</h6>
+                        </div>
+                        <div class="card-body">
+                            ${analysis.recommendations.map(rec => `
+                                <div class="alert alert-${rec.type} alert-sm mb-2">
+                                    <strong>${rec.title}</strong><br>
+                                    <small>${rec.message}</small>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0">📈 Quick Stats</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <h5 class="text-primary">${analysis.currentMonthExpenses.length}</h5>
+                                    <small class="text-muted">Total Transactions</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h5 class="text-success">${Object.keys(analysis.categorySpending).length}</h5>
+                                    <small class="text-muted">Categories Used</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h5 class="text-info">₹${(analysis.currentMonthTotal / analysis.currentMonthExpenses.length || 0).toFixed(2)}</h5>
+                                    <small class="text-muted">Avg per Transaction</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <h5 class="text-warning">${trendIcon}</h5>
+                                    <small class="text-muted">Spending Trend</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    refreshAIInsights() {
+        const insightsContent = document.getElementById('ai-insights-content');
+        insightsContent.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Refreshing...</span>
+                </div>
+                <p class="mt-2">Refreshing AI analysis...</p>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            this.generateAIInsights();
+        }, 1000);
+    }
+
     showAlert(message, type) {
         // Create alert element
         const alertDiv = document.createElement('div');

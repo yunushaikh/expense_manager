@@ -197,6 +197,24 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- AI Insights Button -->
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2" style="cursor: pointer;" onclick="expenseManager.showAIInsights()">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                🤖 AI Insights</div>
+                                            <div class="h6 mb-0 font-weight-bold text-gray-800">Analyze Spending</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="bi bi-brain fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-info shadow h-100 py-2">
@@ -602,6 +620,31 @@
         </div>
     </div>
 
+    <!-- AI Insights Modal -->
+    <div class="modal fade" id="aiInsightsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">🤖 AI Spending Insights</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="ai-insights-content">
+                        <div class="text-center">
+                            <div class="spinner-border text-info" role="status">
+                                <span class="visually-hidden">Analyzing...</span>
+                            </div>
+                            <p class="mt-2">AI is analyzing your spending patterns...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-info" onclick="expenseManager.refreshAIInsights()">Refresh Analysis</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

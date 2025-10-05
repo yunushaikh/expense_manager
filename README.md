@@ -80,6 +80,12 @@ Before running this application, ensure you have the following installed on your
 - **Smooth Animations**: Hover effects and transitions
 - **Mobile Responsive**: Optimized for all device sizes
 
+### 🤖 **AI-Powered Features**
+- **Smart Categorization**: AI automatically suggests expense categories based on descriptions
+- **Spending Insights**: AI analyzes spending patterns and provides personalized recommendations
+- **Budget Forecasting**: AI predicts future spending based on historical data (coming soon)
+- **Natural Language Queries**: Ask questions about your finances in plain English (coming soon)
+
 ### 🔄 **Advanced Features**
 - **Dynamic Month Selection**: Automatic data updates when changing months
 - **Yearly Balance Tracking**: Complete yearly financial overview
@@ -150,6 +156,58 @@ The application includes a comprehensive service script for easy management:
 - **Real-time Charts**: All charts update with actual data from your database
 - **Data Persistence**: All data is stored in SQLite database
 - **Backup**: Database file (`expenses.db`) can be easily backed up
+
+## 🤖 AI Features Guide
+
+### 1. Smart Expense Categorization
+The AI automatically suggests appropriate categories when you type expense descriptions:
+
+**How it works:**
+- Type a description like "Coffee at Starbucks"
+- AI suggests "Food & Dining" category
+- Shows hint: "🤖 AI suggests: Food & Dining"
+- You can still change the category if needed
+
+**Supported keywords:**
+- **Food & Dining**: restaurant, cafe, coffee, lunch, dinner, pizza, burger
+- **Transportation**: uber, taxi, bus, train, fuel, gas, parking
+- **Shopping**: amazon, flipkart, mall, store, clothes, electronics
+- **Entertainment**: movie, cinema, netflix, spotify, game
+- **Healthcare**: hospital, doctor, medicine, pharmacy
+- **And 18+ more categories...**
+
+### 2. AI Spending Insights
+Get personalized spending analysis and recommendations:
+
+**Access:** Click the "🤖 AI Insights" button on the dashboard
+
+**What you get:**
+- **Spending Overview**: Current month vs 3-month average
+- **Spending Trend**: Increasing, decreasing, or stable
+- **Top Categories**: Your highest spending categories
+- **Highest Expense**: Your biggest single expense
+- **AI Recommendations**: Personalized advice based on your patterns
+
+**Sample Insights:**
+- "Your spending is 15% higher than your 3-month average"
+- "Food & Dining accounts for 35% of your spending"
+- "Consider diversifying your expenses for better financial health"
+
+### 3. AI Categories Available
+The system includes 23+ smart categories:
+- Food & Dining, Transportation, Shopping, Entertainment
+- Healthcare, Utilities, Education, Travel, Groceries
+- Gas, Insurance, Rent, Subscriptions, Personal Care
+- Home & Garden, Technology, Fitness & Sports
+- Gifts & Donations, Business, Kids, Breakfast, Daily Items
+
+### 4. How to Enable AI Features
+AI features work automatically - no setup required! They use intelligent keyword matching and don't require API keys or internet connection.
+
+**For advanced AI features (coming soon):**
+- Budget Forecasting
+- Natural Language Queries
+- Advanced Pattern Recognition
 
 ## 📚 API Documentation
 
