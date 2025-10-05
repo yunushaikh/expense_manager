@@ -3,19 +3,23 @@
 class ExpenseManager {
     constructor() {
         this.currentSection = 'dashboard';
-        this.currentMonth = 9; // September (has most recent data)
-        this.currentYear = 2025;
+        const now = new Date();
+        this.currentMonth = now.getMonth() + 1; // Current month (1-12)
+        this.currentYear = now.getFullYear(); // Current year
+        this.dateRange = { from: null, to: null }; // Date range selection
         this.categories = [];
         this.expenses = [];
         this.income = [];
         this.summary = { totalIncome: 0, totalExpenses: 0, netIncome: 0 };
         this.yearlySummary = { totalIncome: 0, totalExpenses: 0, netIncome: 0 };
+        this.isDarkTheme = false;
         
         
         this.init();
     }
 
     init() {
+        this.loadTheme(); // Load saved theme
         this.setupEventListeners();
         this.loadCategories();
         this.loadData();
@@ -634,8 +638,14 @@ class ExpenseManager {
     updateCurrentMonthDisplay() {
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
             'July', 'August', 'September', 'October', 'November', 'December'];
-        document.getElementById('current-month').textContent = 
-            `${monthNames[this.currentMonth - 1]} ${this.currentYear}`;
+        const currentMonthElement = document.getElementById('current-month');
+        if (currentMonthElement) {
+            if (this.dateRange.from && this.dateRange.to) {
+                currentMonthElement.textContent = `${this.formatDate(this.dateRange.from)} - ${this.formatDate(this.dateRange.to)}`;
+            } else {
+                currentMonthElement.textContent = `${monthNames[this.currentMonth - 1]} ${this.currentYear}`;
+            }
+        }
     }
 
     async saveExpense() {
@@ -1089,9 +1099,18 @@ class ExpenseManager {
         console.log('Current month:', currentMonth, 'Current year:', currentYear);
         console.log('Total expenses available:', this.expenses.length);
         
-        // Get current month expenses
+        // Get current month expenses (with date range support)
         const currentMonthExpenses = this.expenses.filter(expense => {
             const expenseDate = new Date(expense.date);
+            
+            // If date range is active, use date range filtering
+            if (this.dateRange.from && this.dateRange.to) {
+                const fromDate = new Date(this.dateRange.from);
+                const toDate = new Date(this.dateRange.to);
+                return expenseDate >= fromDate && expenseDate <= toDate;
+            }
+            
+            // Otherwise use month/year filtering
             return expenseDate.getMonth() + 1 === currentMonth && 
                    expenseDate.getFullYear() === currentYear;
         });
@@ -1957,6 +1976,15 @@ class ExpenseManager {
         
         const currentMonthIncome = this.income.filter(income => {
             const incomeDate = new Date(income.date);
+            
+            // If date range is active, use date range filtering
+            if (this.dateRange.from && this.dateRange.to) {
+                const fromDate = new Date(this.dateRange.from);
+                const toDate = new Date(this.dateRange.to);
+                return incomeDate >= fromDate && incomeDate <= toDate;
+            }
+            
+            // Otherwise use month/year filtering
             return incomeDate.getMonth() + 1 === currentMonth && 
                    incomeDate.getFullYear() === currentYear;
         });
@@ -2089,6 +2117,80 @@ class ExpenseManager {
                 <small>Try asking: "How much did I spend on groceries this month?" or "What's my biggest expense category?"</small>
             </div>
         `;
+    }
+
+    // Version 2.0: Date Range Functionality
+    applyDateRange() {
+        const fromDate = document.getElementById('date-from').value;
+        const toDate = document.getElementById('date-to').value;
+        
+        if (!fromDate || !toDate) {
+            this.showAlert('Please select both from and to dates', 'warning');
+            return;
+        }
+        
+        if (new Date(fromDate) > new Date(toDate)) {
+            this.showAlert('From date cannot be after to date', 'danger');
+            return;
+        }
+        
+        this.dateRange.from = fromDate;
+        this.dateRange.to = toDate;
+        
+        // Update the display
+        document.getElementById('current-date-range').textContent = 
+            `${this.formatDate(fromDate)} - ${this.formatDate(toDate)}`;
+        
+        // Reload data with date range
+        this.loadData();
+        this.showAlert('Date range applied successfully', 'success');
+    }
+
+    clearDateRange() {
+        this.dateRange.from = null;
+        this.dateRange.to = null;
+        document.getElementById('date-from').value = '';
+        document.getElementById('date-to').value = '';
+        document.getElementById('current-date-range').textContent = 'Custom Range';
+        
+        // Reload data without date range
+        this.loadData();
+        this.showAlert('Date range cleared', 'info');
+    }
+
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+    }
+
+    // Version 2.0: Dark Theme Toggle
+    toggleTheme() {
+        this.isDarkTheme = !this.isDarkTheme;
+        const html = document.documentElement;
+        const themeIcon = document.getElementById('theme-icon');
+        
+        if (this.isDarkTheme) {
+            html.setAttribute('data-theme', 'dark');
+            themeIcon.className = 'bi bi-sun';
+            localStorage.setItem('theme', 'dark');
+        } else {
+            html.removeAttribute('data-theme');
+            themeIcon.className = 'bi bi-moon';
+            localStorage.setItem('theme', 'light');
+        }
+    }
+
+    loadTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            this.isDarkTheme = true;
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-icon').className = 'bi bi-sun';
+        }
     }
 
     showAlert(message, type) {

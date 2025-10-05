@@ -74,6 +74,36 @@
                         </ul>
                     </div>
                     
+                    <!-- Date Range Selector -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-calendar-range me-1"></i>
+                            <span id="current-date-range">Custom Range</span>
+                        </button>
+                        <div class="dropdown-menu p-3" style="min-width: 300px;">
+                            <h6 class="dropdown-header">Select Date Range</h6>
+                            <div class="mb-3">
+                                <label for="date-from" class="form-label small">From Date</label>
+                                <input type="date" id="date-from" class="form-control form-control-sm">
+                            </div>
+                            <div class="mb-3">
+                                <label for="date-to" class="form-label small">To Date</label>
+                                <input type="date" id="date-to" class="form-control form-control-sm">
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary btn-sm" onclick="expenseManager.applyDateRange()">Apply Range</button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="expenseManager.clearDateRange()">Clear Range</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Theme Toggle -->
+                    <div class="ms-3">
+                        <button class="btn btn-outline-light" type="button" onclick="expenseManager.toggleTheme()" title="Toggle Dark Mode">
+                            <i class="bi bi-moon" id="theme-icon"></i>
+                        </button>
+                    </div>
+                    
                 </div>
             </div>
         </div>
