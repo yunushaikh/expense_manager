@@ -176,12 +176,33 @@ class ExpenseManager {
     }
 
     async loadDashboardData() {
-        // Load overall data for dashboard (not monthly)
+        // Load both current month and yearly data for dashboard
+        await this.loadCurrentMonthData();
         await this.loadOverallData();
         this.updateSummaryCards();
         this.updateRecentTransactions();
         this.createOverallChart();
         this.createCategoryChart();
+    }
+
+    async loadCurrentMonthData() {
+        try {
+            // Load current month data for upper tiles
+            const [expensesResponse, incomeResponse, summaryResponse] = await Promise.all([
+                fetch(`/api/expenses?month=${this.currentMonth}&year=${this.currentYear}`),
+                fetch(`/api/income?month=${this.currentMonth}&year=${this.currentYear}`),
+                fetch(`/api/summary?month=${this.currentMonth}&year=${this.currentYear}`)
+            ]);
+
+            this.currentMonthExpenses = await expensesResponse.json();
+            this.currentMonthIncome = await incomeResponse.json();
+            this.currentMonthSummary = await summaryResponse.json();
+        } catch (error) {
+            console.error('Error loading current month data:', error);
+            this.currentMonthExpenses = [];
+            this.currentMonthIncome = [];
+            this.currentMonthSummary = { totalIncome: 0, totalExpenses: 0, netIncome: 0 };
+        }
     }
 
     async loadOverallData() {
@@ -217,12 +238,17 @@ class ExpenseManager {
     }
 
     updateSummaryCards() {
-        document.getElementById('total-income').textContent = this.formatCurrency(this.summary.totalIncome);
-        document.getElementById('total-expenses').textContent = this.formatCurrency(this.summary.totalExpenses);
-        document.getElementById('net-income').textContent = this.formatCurrency(this.summary.netIncome);
+        // Update current month summary cards (upper tiles)
+        if (this.currentMonthSummary) {
+            document.getElementById('current-month-income').textContent = this.formatCurrency(this.currentMonthSummary.totalIncome);
+            document.getElementById('current-month-expenses').textContent = this.formatCurrency(this.currentMonthSummary.totalExpenses);
+            document.getElementById('current-month-net').textContent = this.formatCurrency(this.currentMonthSummary.netIncome);
+        }
+        
+        // Update total transactions (overall)
         document.getElementById('total-transactions').textContent = this.expenses.length + this.income.length;
         
-        // Update yearly summary cards
+        // Update yearly summary cards (lower tiles)
         if (this.yearlySummary) {
             document.getElementById('yearly-income').textContent = this.formatCurrency(this.yearlySummary.totalIncome);
             document.getElementById('yearly-expenses').textContent = this.formatCurrency(this.yearlySummary.totalExpenses);
