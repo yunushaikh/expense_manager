@@ -3,7 +3,7 @@
 class ExpenseManager {
     constructor() {
         this.currentSection = 'dashboard';
-        this.currentMonth = 10; // October (has most recent data)
+        this.currentMonth = 9; // September (has most recent data)
         this.currentYear = 2025;
         this.categories = [];
         this.expenses = [];
