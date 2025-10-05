@@ -943,22 +943,28 @@ class ExpenseManager {
         
         // Enhanced keyword matching for better categorization
         const categories = {
-            'Food & Dining': ['restaurant', 'cafe', 'coffee', 'lunch', 'dinner', 'food', 'eat', 'dining', 'pizza', 'burger', 'sandwich', 'meal'],
-            'Transportation': ['uber', 'taxi', 'bus', 'train', 'metro', 'fuel', 'gas', 'parking', 'transport', 'ride', 'cab', 'petrol', 'diesel'],
-            'Shopping': ['amazon', 'flipkart', 'mall', 'store', 'shop', 'purchase', 'buy', 'clothes', 'shirt', 'pants', 'shoes'],
-            'Entertainment': ['movie', 'cinema', 'netflix', 'spotify', 'game', 'entertainment', 'fun', 'theater', 'concert', 'show'],
-            'Healthcare': ['hospital', 'doctor', 'medicine', 'pharmacy', 'health', 'medical', 'clinic', 'medicine', 'tablet', 'injection'],
-            'Utilities': ['electricity', 'water', 'internet', 'phone', 'utility', 'bill', 'wifi', 'mobile', 'broadband'],
-            'Education': ['school', 'college', 'course', 'book', 'education', 'learning', 'tuition', 'student', 'study', 'exam'],
-            'Travel': ['hotel', 'flight', 'vacation', 'trip', 'travel', 'booking', 'ticket', 'journey', 'holiday'],
-            'Groceries': ['grocery', 'supermarket', 'vegetables', 'fruits', 'milk', 'bread', 'rice', 'wheat', 'atta', 'dal', 'chicken', 'egg'],
-            'Gas': ['petrol', 'diesel', 'fuel', 'gas station', 'pump', 'filling'],
-            'Insurance': ['insurance', 'premium', 'policy', 'coverage'],
-            'Rent': ['rent', 'rental', 'apartment', 'house', 'accommodation'],
-            'Subscriptions': ['subscription', 'monthly', 'yearly', 'recurring', 'membership'],
-            'Kids': ['school', 'project', 'diamond', 'diya', 'cake', 'breakfast', 'eatables', 'kids', 'child', 'student'],
-            'Breakfast': ['breakfast', 'morning', 'idli', 'dosa', 'poha', 'upma', 'snacks', 'evening'],
-            'Daily Items': ['daily', 'items', 'snacks', 'miscellaneous', 'general']
+            'Food & Dining': ['restaurant', 'cafe', 'coffee', 'lunch', 'dinner', 'food', 'eat', 'dining', 'pizza', 'burger', 'sandwich', 'meal', 'starbucks', 'mcdonalds', 'kfc', 'dominos'],
+            'Transportation': ['uber', 'taxi', 'bus', 'train', 'metro', 'fuel', 'gas', 'parking', 'transport', 'ride', 'cab', 'petrol', 'diesel', 'auto', 'rickshaw'],
+            'Shopping': ['amazon', 'flipkart', 'mall', 'store', 'shop', 'purchase', 'buy', 'clothes', 'shirt', 'pants', 'shoes', 'electronics', 'gadgets', 'online'],
+            'Entertainment': ['movie', 'cinema', 'netflix', 'spotify', 'game', 'entertainment', 'fun', 'theater', 'concert', 'show', 'youtube', 'prime', 'disney'],
+            'Healthcare': ['hospital', 'doctor', 'medicine', 'pharmacy', 'health', 'medical', 'clinic', 'medicine', 'tablet', 'injection', 'checkup', 'treatment', 'surgery'],
+            'Utilities': ['electricity', 'water', 'internet', 'phone', 'utility', 'bill', 'wifi', 'mobile', 'broadband', 'electric', 'power', 'connection'],
+            'Education': ['school', 'college', 'course', 'book', 'education', 'learning', 'tuition', 'student', 'study', 'exam', 'university', 'institute', 'training'],
+            'Travel': ['hotel', 'flight', 'vacation', 'trip', 'travel', 'booking', 'ticket', 'journey', 'holiday', 'tourism', 'resort', 'airbnb'],
+            'Groceries': ['grocery', 'supermarket', 'vegetables', 'fruits', 'milk', 'bread', 'rice', 'wheat', 'atta', 'dal', 'chicken', 'egg', 'vegetable', 'fruits', 'dairy'],
+            'Gas': ['petrol', 'diesel', 'fuel', 'gas station', 'pump', 'filling', 'petrol pump', 'fuel station'],
+            'Insurance': ['insurance', 'premium', 'policy', 'coverage', 'life insurance', 'health insurance', 'car insurance'],
+            'Rent': ['rent', 'rental', 'apartment', 'house', 'accommodation', 'room', 'flat', 'lease'],
+            'Subscriptions': ['subscription', 'monthly', 'yearly', 'recurring', 'membership', 'netflix', 'spotify', 'prime', 'gym', 'magazine'],
+            'Kids': ['school', 'project', 'diamond', 'diya', 'cake', 'breakfast', 'eatables', 'kids', 'child', 'student', 'toys', 'children'],
+            'Breakfast': ['breakfast', 'morning', 'idli', 'dosa', 'poha', 'upma', 'snacks', 'evening', 'tea', 'coffee', 'biscuits'],
+            'Daily Items': ['daily', 'items', 'snacks', 'miscellaneous', 'general', 'soap', 'shampoo', 'toothpaste', 'tissue'],
+            'Personal Care': ['beauty', 'cosmetics', 'skincare', 'haircut', 'salon', 'spa', 'massage', 'grooming', 'perfume', 'makeup'],
+            'Home & Garden': ['furniture', 'decoration', 'plants', 'garden', 'home', 'repair', 'maintenance', 'cleaning', 'tools', 'appliances'],
+            'Technology': ['software', 'app', 'computer', 'laptop', 'phone', 'gadget', 'tech', 'digital', 'online', 'internet', 'software'],
+            'Fitness & Sports': ['gym', 'fitness', 'sports', 'exercise', 'yoga', 'running', 'swimming', 'equipment', 'workout', 'health'],
+            'Gifts & Donations': ['gift', 'donation', 'charity', 'present', 'birthday', 'anniversary', 'wedding', 'festival', 'celebration'],
+            'Business': ['office', 'meeting', 'business', 'work', 'professional', 'client', 'project', 'conference', 'seminar', 'training']
         };
 
         // Find the best matching category
