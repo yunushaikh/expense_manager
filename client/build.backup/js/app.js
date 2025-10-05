@@ -65,8 +65,6 @@ class ExpenseManager {
         // Modal events
         document.getElementById('addExpenseModal').addEventListener('show.bs.modal', () => {
             this.populateCategorySelect();
-            // Initialize AI categorization
-            setTimeout(() => this.setupAICategorization(), 100);
         });
 
         // Update buttons
@@ -935,93 +933,6 @@ class ExpenseManager {
             month: 'short',
             day: 'numeric'
         });
-    }
-
-    // AI Feature 1: Smart Expense Categorization
-    suggestCategory(description, amount = null) {
-        const desc = description.toLowerCase();
-        
-        // Enhanced keyword matching for better categorization
-        const categories = {
-            'Food & Dining': ['restaurant', 'cafe', 'coffee', 'lunch', 'dinner', 'food', 'eat', 'dining', 'pizza', 'burger', 'sandwich', 'meal'],
-            'Transportation': ['uber', 'taxi', 'bus', 'train', 'metro', 'fuel', 'gas', 'parking', 'transport', 'ride', 'cab', 'petrol', 'diesel'],
-            'Shopping': ['amazon', 'flipkart', 'mall', 'store', 'shop', 'purchase', 'buy', 'clothes', 'shirt', 'pants', 'shoes'],
-            'Entertainment': ['movie', 'cinema', 'netflix', 'spotify', 'game', 'entertainment', 'fun', 'theater', 'concert', 'show'],
-            'Healthcare': ['hospital', 'doctor', 'medicine', 'pharmacy', 'health', 'medical', 'clinic', 'medicine', 'tablet', 'injection'],
-            'Utilities': ['electricity', 'water', 'internet', 'phone', 'utility', 'bill', 'wifi', 'mobile', 'broadband'],
-            'Education': ['school', 'college', 'course', 'book', 'education', 'learning', 'tuition', 'student', 'study', 'exam'],
-            'Travel': ['hotel', 'flight', 'vacation', 'trip', 'travel', 'booking', 'ticket', 'journey', 'holiday'],
-            'Groceries': ['grocery', 'supermarket', 'vegetables', 'fruits', 'milk', 'bread', 'rice', 'wheat', 'atta', 'dal', 'chicken', 'egg'],
-            'Gas': ['petrol', 'diesel', 'fuel', 'gas station', 'pump', 'filling'],
-            'Insurance': ['insurance', 'premium', 'policy', 'coverage'],
-            'Rent': ['rent', 'rental', 'apartment', 'house', 'accommodation'],
-            'Subscriptions': ['subscription', 'monthly', 'yearly', 'recurring', 'membership'],
-            'Kids': ['school', 'project', 'diamond', 'diya', 'cake', 'breakfast', 'eatables', 'kids', 'child', 'student'],
-            'Breakfast': ['breakfast', 'morning', 'idli', 'dosa', 'poha', 'upma', 'snacks', 'evening'],
-            'Daily Items': ['daily', 'items', 'snacks', 'miscellaneous', 'general']
-        };
-
-        // Find the best matching category
-        for (const [category, keywords] of Object.entries(categories)) {
-            if (keywords.some(keyword => desc.includes(keyword))) {
-                return category;
-            }
-        }
-
-        // If no match found, return 'Other'
-        return 'Other';
-    }
-
-    // Auto-suggest category when user types in description
-    setupAICategorization() {
-        const descriptionInput = document.getElementById('expense-description');
-        const categorySelect = document.getElementById('expense-category');
-        
-        if (descriptionInput && categorySelect) {
-            descriptionInput.addEventListener('input', () => {
-                const description = descriptionInput.value.trim();
-                if (description.length > 3) { // Only suggest after 3 characters
-                    const suggestedCategory = this.suggestCategory(description);
-                    
-                    // Update the category dropdown if it's empty or set to "Select Category"
-                    if (categorySelect.value === '' || categorySelect.value === 'Select Category') {
-                        categorySelect.value = suggestedCategory;
-                        
-                        // Show a subtle hint
-                        this.showCategoryHint(suggestedCategory);
-                    }
-                }
-            });
-        }
-    }
-
-    // Show a subtle hint about the suggested category
-    showCategoryHint(category) {
-        // Remove any existing hint
-        const existingHint = document.querySelector('.ai-category-hint');
-        if (existingHint) {
-            existingHint.remove();
-        }
-
-        // Create hint element
-        const hint = document.createElement('div');
-        hint.className = 'ai-category-hint text-muted small mt-1';
-        hint.innerHTML = `🤖 AI suggests: <strong>${category}</strong>`;
-        hint.style.fontSize = '0.8rem';
-        hint.style.color = '#6c757d';
-        
-        // Insert after the category select
-        const categorySelect = document.getElementById('expense-category');
-        if (categorySelect && categorySelect.parentNode) {
-            categorySelect.parentNode.appendChild(hint);
-            
-            // Remove hint after 3 seconds
-            setTimeout(() => {
-                if (hint.parentNode) {
-                    hint.parentNode.removeChild(hint);
-                }
-            }, 3000);
-        }
     }
 
     showAlert(message, type) {
