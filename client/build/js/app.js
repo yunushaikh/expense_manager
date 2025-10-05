@@ -1414,6 +1414,407 @@ class ExpenseManager {
         }, 1000);
     }
 
+    // AI Feature 3: Budget Forecasting
+    showAIForecasting() {
+        console.log('AI Forecasting clicked!');
+        const modalElement = document.getElementById('aiForecastingModal');
+        if (!modalElement) {
+            console.error('AI Forecasting modal not found!');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+        
+        // Generate forecast
+        setTimeout(() => {
+            this.generateAIForecasting();
+        }, 1000);
+    }
+
+    generateAIForecasting() {
+        console.log('Generating AI forecasting...');
+        const forecastingContent = document.getElementById('ai-forecasting-content');
+        
+        if (!forecastingContent) {
+            console.error('AI forecasting content element not found!');
+            return;
+        }
+        
+        try {
+            // Analyze spending patterns for forecasting
+            console.log('Analyzing spending patterns for forecasting...');
+            const forecast = this.analyzeSpendingForForecast();
+            console.log('Forecast analysis completed:', forecast);
+            
+            console.log('Creating forecasting HTML...');
+            const forecastingHTML = this.createForecastingHTML(forecast);
+            console.log('HTML generated, updating content...');
+            
+            forecastingContent.innerHTML = forecastingHTML;
+            console.log('AI forecasting generated successfully!');
+            
+        } catch (error) {
+            console.error('Error generating AI forecasting:', error);
+            forecastingContent.innerHTML = `
+                <div class="alert alert-danger">
+                    <h5>Error generating forecast</h5>
+                    <p>There was an error predicting your future spending. Please try again.</p>
+                    <small>Error: ${error.message}</small>
+                </div>
+            `;
+        }
+    }
+
+    analyzeSpendingForForecast() {
+        console.log('Starting spending analysis for forecasting...');
+        
+        // Get last 6 months of data for better predictions
+        const last6Months = [];
+        const currentMonth = this.currentMonth;
+        const currentYear = this.currentYear;
+        
+        for (let i = 0; i < 6; i++) {
+            const month = currentMonth - i;
+            const year = month <= 0 ? currentYear - 1 : currentYear;
+            const actualMonth = month <= 0 ? month + 12 : month;
+            
+            const monthExpenses = this.expenses.filter(expense => {
+                const expenseDate = new Date(expense.date);
+                return expenseDate.getMonth() + 1 === actualMonth && 
+                       expenseDate.getFullYear() === year;
+            });
+            
+            const monthIncome = this.income.filter(income => {
+                const incomeDate = new Date(income.date);
+                return incomeDate.getMonth() + 1 === actualMonth && 
+                       incomeDate.getFullYear() === year;
+            });
+            
+            const totalExpenses = monthExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+            const totalIncome = monthIncome.reduce((sum, inc) => sum + parseFloat(inc.amount), 0);
+            
+            last6Months.push({
+                month: actualMonth,
+                year: year,
+                monthName: new Date(year, actualMonth - 1).toLocaleDateString('en-US', { month: 'long' }),
+                expenses: monthExpenses,
+                income: monthIncome,
+                totalExpenses: totalExpenses,
+                totalIncome: totalIncome,
+                netIncome: totalIncome - totalExpenses
+            });
+        }
+        
+        // Calculate trends and patterns
+        const avgMonthlyExpenses = last6Months.reduce((sum, month) => sum + month.totalExpenses, 0) / 6;
+        const avgMonthlyIncome = last6Months.reduce((sum, month) => sum + month.totalIncome, 0) / 6;
+        
+        // Calculate growth rates
+        const recent3Months = last6Months.slice(0, 3);
+        const older3Months = last6Months.slice(3, 6);
+        
+        const recentAvgExpenses = recent3Months.reduce((sum, month) => sum + month.totalExpenses, 0) / 3;
+        const olderAvgExpenses = older3Months.reduce((sum, month) => sum + month.totalExpenses, 0) / 3;
+        
+        const expenseGrowthRate = olderAvgExpenses > 0 ? ((recentAvgExpenses - olderAvgExpenses) / olderAvgExpenses) * 100 : 0;
+        
+        // Category-wise analysis for forecasting
+        const categoryTrends = {};
+        last6Months.forEach(month => {
+            month.expenses.forEach(expense => {
+                const category = expense.category || 'Other';
+                if (!categoryTrends[category]) {
+                    categoryTrends[category] = [];
+                }
+                categoryTrends[category].push(parseFloat(expense.amount));
+            });
+        });
+        
+        // Calculate category averages and growth
+        const categoryForecasts = {};
+        Object.keys(categoryTrends).forEach(category => {
+            const amounts = categoryTrends[category];
+            const avgAmount = amounts.reduce((sum, amount) => sum + amount, 0) / amounts.length;
+            const recentAvg = amounts.slice(0, 3).reduce((sum, amount) => sum + amount, 0) / Math.min(3, amounts.length);
+            const olderAvg = amounts.slice(3).reduce((sum, amount) => sum + amount, 0) / Math.max(1, amounts.length - 3);
+            
+            const growthRate = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : 0;
+            
+            categoryForecasts[category] = {
+                currentAvg: avgAmount,
+                growthRate: growthRate,
+                predictedNextMonth: avgAmount * (1 + growthRate / 100)
+            };
+        });
+        
+        // Predict next 3 months
+        const next3Months = [];
+        for (let i = 1; i <= 3; i++) {
+            const nextMonth = currentMonth + i;
+            const nextYear = nextMonth > 12 ? currentYear + 1 : currentYear;
+            const actualNextMonth = nextMonth > 12 ? nextMonth - 12 : nextMonth;
+            
+            const predictedExpenses = avgMonthlyExpenses * (1 + expenseGrowthRate / 100) * Math.pow(1 + expenseGrowthRate / 100, i - 1);
+            const predictedIncome = avgMonthlyIncome; // Assume income stays stable
+            
+            next3Months.push({
+                month: actualNextMonth,
+                year: nextYear,
+                monthName: new Date(nextYear, actualNextMonth - 1).toLocaleDateString('en-US', { month: 'long' }),
+                predictedExpenses: predictedExpenses,
+                predictedIncome: predictedIncome,
+                predictedNet: predictedIncome - predictedExpenses
+            });
+        }
+        
+        // Calculate year-end predictions
+        const monthsRemaining = 12 - currentMonth + 1;
+        const predictedYearEndExpenses = avgMonthlyExpenses * monthsRemaining;
+        const predictedYearEndIncome = avgMonthlyIncome * monthsRemaining;
+        const predictedYearEndNet = predictedYearEndIncome - predictedYearEndExpenses;
+        
+        // Risk analysis
+        const risks = [];
+        if (expenseGrowthRate > 10) {
+            risks.push({
+                type: 'warning',
+                title: 'High Spending Growth',
+                message: `Your expenses are growing at ${expenseGrowthRate.toFixed(1)}% per month. This trend could lead to budget overruns.`
+            });
+        }
+        
+        if (avgMonthlyExpenses > avgMonthlyIncome * 0.8) {
+            risks.push({
+                type: 'danger',
+                title: 'High Expense Ratio',
+                message: `You're spending ${((avgMonthlyExpenses / avgMonthlyIncome) * 100).toFixed(1)}% of your income on expenses. Consider increasing savings.`
+            });
+        }
+        
+        const topGrowingCategory = Object.entries(categoryForecasts)
+            .sort(([,a], [,b]) => b.growthRate - a.growthRate)[0];
+        
+        if (topGrowingCategory && topGrowingCategory[1].growthRate > 15) {
+            risks.push({
+                type: 'info',
+                title: 'Fast Growing Category',
+                message: `${topGrowingCategory[0]} expenses are growing at ${topGrowingCategory[1].growthRate.toFixed(1)}% per month. Monitor this category closely.`
+            });
+        }
+        
+        return {
+            last6Months,
+            avgMonthlyExpenses,
+            avgMonthlyIncome,
+            expenseGrowthRate,
+            categoryForecasts,
+            next3Months,
+            predictedYearEndExpenses,
+            predictedYearEndIncome,
+            predictedYearEndNet,
+            risks,
+            monthsRemaining
+        };
+    }
+
+    createForecastingHTML(forecast) {
+        const growthIcon = forecast.expenseGrowthRate > 0 ? '📈' : 
+                          forecast.expenseGrowthRate < 0 ? '📉' : '➡️';
+        const growthColor = forecast.expenseGrowthRate > 0 ? 'text-danger' : 
+                           forecast.expenseGrowthRate < 0 ? 'text-success' : 'text-info';
+
+        return `
+            <div class="row">
+                <!-- Current Trends -->
+                <div class="col-md-6 mb-4">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">📊 Current Trends (6 Months)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h4 class="text-primary">₹${forecast.avgMonthlyExpenses.toFixed(2)}</h4>
+                                    <small class="text-muted">Avg Monthly Expenses</small>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-success">₹${forecast.avgMonthlyIncome.toFixed(2)}</h4>
+                                    <small class="text-muted">Avg Monthly Income</small>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="text-center">
+                                <h5 class="${growthColor}">${growthIcon} ${Math.abs(forecast.expenseGrowthRate).toFixed(1)}%</h5>
+                                <small class="text-muted">Monthly Growth Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Year-End Predictions -->
+                <div class="col-md-6 mb-4">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">🎯 Year-End Predictions</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h4 class="text-warning">₹${forecast.predictedYearEndExpenses.toFixed(2)}</h4>
+                                    <small class="text-muted">Predicted Expenses</small>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-info">₹${forecast.predictedYearEndIncome.toFixed(2)}</h4>
+                                    <small class="text-muted">Predicted Income</small>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="text-center">
+                                <h5 class="${forecast.predictedYearEndNet >= 0 ? 'text-success' : 'text-danger'}">
+                                    ₹${forecast.predictedYearEndNet.toFixed(2)}
+                                </h5>
+                                <small class="text-muted">Predicted Net (${forecast.monthsRemaining} months left)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next 3 Months Forecast -->
+                <div class="col-12 mb-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">🔮 Next 3 Months Forecast</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                ${forecast.next3Months.map(month => `
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card border-light">
+                                            <div class="card-body text-center">
+                                                <h6 class="card-title text-primary">${month.monthName} ${month.year}</h6>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Expenses:</small>
+                                                    <h6 class="text-danger">₹${month.predictedExpenses.toFixed(2)}</h6>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">Income:</small>
+                                                    <h6 class="text-success">₹${month.predictedIncome.toFixed(2)}</h6>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted">Net:</small>
+                                                    <h6 class="${month.predictedNet >= 0 ? 'text-success' : 'text-danger'}">
+                                                        ₹${month.predictedNet.toFixed(2)}
+                                                    </h6>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Forecasts -->
+                <div class="col-md-6 mb-4">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">📈 Category Growth Forecasts</h6>
+                        </div>
+                        <div class="card-body">
+                            ${Object.entries(forecast.categoryForecasts)
+                                .sort(([,a], [,b]) => b.growthRate - a.growthRate)
+                                .slice(0, 5)
+                                .map(([category, data]) => `
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span><strong>${category}</strong></span>
+                                        <div class="text-end">
+                                            <small class="text-muted">Next Month: ₹${data.predictedNextMonth.toFixed(2)}</small><br>
+                                            <span class="badge ${data.growthRate > 0 ? 'bg-danger' : data.growthRate < 0 ? 'bg-success' : 'bg-secondary'}">
+                                                ${data.growthRate > 0 ? '+' : ''}${data.growthRate.toFixed(1)}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Analysis -->
+                <div class="col-md-6 mb-4">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="mb-0">⚠️ Risk Analysis</h6>
+                        </div>
+                        <div class="card-body">
+                            ${forecast.risks.length > 0 ? 
+                                forecast.risks.map(risk => `
+                                    <div class="alert alert-${risk.type} alert-sm mb-2">
+                                        <strong>${risk.title}</strong><br>
+                                        <small>${risk.message}</small>
+                                    </div>
+                                `).join('') :
+                                '<div class="alert alert-success alert-sm">No significant risks detected. Your spending patterns look healthy!</div>'
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historical Data Chart -->
+                <div class="col-12 mb-4">
+                    <div class="card border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0">📊 6-Month Historical Data</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Month</th>
+                                            <th class="text-end">Expenses</th>
+                                            <th class="text-end">Income</th>
+                                            <th class="text-end">Net</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${forecast.last6Months.reverse().map(month => `
+                                            <tr>
+                                                <td>${month.monthName} ${month.year}</td>
+                                                <td class="text-end text-danger">₹${month.totalExpenses.toFixed(2)}</td>
+                                                <td class="text-end text-success">₹${month.totalIncome.toFixed(2)}</td>
+                                                <td class="text-end ${month.netIncome >= 0 ? 'text-success' : 'text-danger'}">
+                                                    ₹${month.netIncome.toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    refreshAIForecasting() {
+        const forecastingContent = document.getElementById('ai-forecasting-content');
+        forecastingContent.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border text-warning" role="status">
+                    <span class="visually-hidden">Refreshing...</span>
+                </div>
+                <p class="mt-2">Refreshing AI forecast...</p>
+            </div>
+        `;
+        
+        setTimeout(() => {
+            this.generateAIForecasting();
+        }, 1000);
+    }
+
     showAlert(message, type) {
         // Create alert element
         const alertDiv = document.createElement('div');
