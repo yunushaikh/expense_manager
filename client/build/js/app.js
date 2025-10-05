@@ -25,6 +25,7 @@ class ExpenseManager {
         this.loadData();
         this.updateCurrentMonthDisplay();
         this.setDefaultDate();
+        this.setDefaultMonthYear(); // Set default month/year in dropdowns
     }
 
     setupEventListeners() {
@@ -36,12 +37,18 @@ class ExpenseManager {
             });
         });
 
-        // Month selection
+        // Month selection (legacy - keeping for compatibility)
         document.querySelectorAll('[data-month]').forEach(link => {
             link.addEventListener('click', async (e) => {
                 e.preventDefault();
                 this.currentMonth = parseInt(link.dataset.month);
                 this.updateCurrentMonthDisplay();
+                
+                // Clear date range when selecting month
+                this.dateRange.from = null;
+                this.dateRange.to = null;
+                document.getElementById('date-from').value = '';
+                document.getElementById('date-to').value = '';
                 
                 // Reload all data first
                 await this.loadData();
@@ -633,6 +640,19 @@ class ExpenseManager {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('expense-date').value = today;
         document.getElementById('income-date').value = today;
+    }
+
+    setDefaultMonthYear() {
+        // Set default values in the dropdowns
+        const monthSelect = document.getElementById('month-select');
+        const yearSelect = document.getElementById('year-select');
+        
+        if (monthSelect) {
+            monthSelect.value = this.currentMonth;
+        }
+        if (yearSelect) {
+            yearSelect.value = this.currentYear;
+        }
     }
 
     updateCurrentMonthDisplay() {
@@ -1970,6 +1990,15 @@ class ExpenseManager {
         
         const currentMonthExpenses = this.expenses.filter(expense => {
             const expenseDate = new Date(expense.date);
+            
+            // If date range is active, use date range filtering
+            if (this.dateRange.from && this.dateRange.to) {
+                const fromDate = new Date(this.dateRange.from);
+                const toDate = new Date(this.dateRange.to);
+                return expenseDate >= fromDate && expenseDate <= toDate;
+            }
+            
+            // Otherwise use month/year filtering
             return expenseDate.getMonth() + 1 === currentMonth && 
                    expenseDate.getFullYear() === currentYear;
         });
@@ -2119,7 +2148,7 @@ class ExpenseManager {
         `;
     }
 
-    // Version 2.0: Date Range Functionality
+    // Version 2.1: Fixed Date Range Functionality
     applyDateRange() {
         const fromDate = document.getElementById('date-from').value;
         const toDate = document.getElementById('date-to').value;
@@ -2138,11 +2167,14 @@ class ExpenseManager {
         this.dateRange.to = toDate;
         
         // Update the display
-        document.getElementById('current-date-range').textContent = 
+        document.getElementById('current-month').textContent = 
             `${this.formatDate(fromDate)} - ${this.formatDate(toDate)}`;
         
         // Reload data with date range
         this.loadData();
+        this.updateSummary();
+        this.updateYearlySummary();
+        this.renderCharts();
         this.showAlert('Date range applied successfully', 'success');
     }
 
@@ -2151,11 +2183,42 @@ class ExpenseManager {
         this.dateRange.to = null;
         document.getElementById('date-from').value = '';
         document.getElementById('date-to').value = '';
-        document.getElementById('current-date-range').textContent = 'Custom Range';
+        
+        // Reset to current month display
+        this.updateCurrentMonthDisplay();
         
         // Reload data without date range
         this.loadData();
+        this.updateSummary();
+        this.updateYearlySummary();
+        this.renderCharts();
         this.showAlert('Date range cleared', 'info');
+    }
+
+    // Version 2.1: Month Selection Functionality
+    applyMonthSelection() {
+        const selectedMonth = parseInt(document.getElementById('month-select').value);
+        const selectedYear = parseInt(document.getElementById('year-select').value);
+        
+        // Clear any active date range
+        this.dateRange.from = null;
+        this.dateRange.to = null;
+        document.getElementById('date-from').value = '';
+        document.getElementById('date-to').value = '';
+        
+        // Set the selected month and year
+        this.currentMonth = selectedMonth;
+        this.currentYear = selectedYear;
+        
+        // Update display
+        this.updateCurrentMonthDisplay();
+        
+        // Reload data
+        this.loadData();
+        this.updateSummary();
+        this.updateYearlySummary();
+        this.renderCharts();
+        this.showAlert(`Switched to ${this.getMonthName(selectedMonth)} ${selectedYear}`, 'success');
     }
 
     formatDate(dateString) {
