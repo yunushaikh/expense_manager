@@ -1058,29 +1058,17 @@ class ExpenseManager {
         }
         
         try {
-            // First, show a simple test
-            insightsContent.innerHTML = `
-                <div class="alert alert-info">
-                    <h5>🤖 AI Insights Test</h5>
-                    <p>Testing AI insights generation...</p>
-                    <p>Total expenses: ${this.expenses.length}</p>
-                    <p>Current month: ${this.currentMonth}/${this.currentYear}</p>
-                </div>
-            `;
+            // Do the real analysis immediately
+            console.log('Analyzing spending patterns...');
+            const analysis = this.analyzeSpendingPatterns();
+            console.log('Analysis completed:', analysis);
             
-            // Wait a bit, then do the full analysis
-            setTimeout(() => {
-                console.log('Analyzing spending patterns...');
-                const analysis = this.analyzeSpendingPatterns();
-                console.log('Analysis completed:', analysis);
-                
-                console.log('Creating insights HTML...');
-                const insightsHTML = this.createInsightsHTML(analysis);
-                console.log('HTML generated, updating content...');
-                
-                insightsContent.innerHTML = insightsHTML;
-                console.log('AI insights generated successfully!');
-            }, 2000);
+            console.log('Creating insights HTML...');
+            const insightsHTML = this.createInsightsHTML(analysis);
+            console.log('HTML generated, updating content...');
+            
+            insightsContent.innerHTML = insightsHTML;
+            console.log('AI insights generated successfully!');
             
         } catch (error) {
             console.error('Error generating AI insights:', error);
@@ -1178,37 +1166,54 @@ class ExpenseManager {
         const recommendations = [];
         
         // Spending trend recommendation
-        if (analysis.trend === 'increasing') {
+        if (analysis.trend === 'increasing' && analysis.avgLast3Months > 0) {
+            const increasePercent = ((analysis.currentMonthTotal - analysis.avgLast3Months) / analysis.avgLast3Months * 100).toFixed(1);
             recommendations.push({
                 type: 'warning',
-                title: 'Spending Trend Alert',
-                message: `Your spending is ${((analysis.currentMonthTotal - analysis.avgLast3Months) / analysis.avgLast3Months * 100).toFixed(1)}% higher than your 3-month average. Consider reviewing your expenses.`
+                title: '📈 Spending Trend Alert',
+                message: `Your spending is ${increasePercent}% higher than your 3-month average (₹${analysis.avgLast3Months.toFixed(2)}). This could indicate lifestyle inflation or unexpected expenses.`
             });
-        } else if (analysis.trend === 'decreasing') {
+        } else if (analysis.trend === 'decreasing' && analysis.avgLast3Months > 0) {
+            const decreasePercent = ((analysis.avgLast3Months - analysis.currentMonthTotal) / analysis.avgLast3Months * 100).toFixed(1);
             recommendations.push({
                 type: 'success',
-                title: 'Great Job!',
-                message: `Your spending is ${((analysis.avgLast3Months - analysis.currentMonthTotal) / analysis.avgLast3Months * 100).toFixed(1)}% lower than your 3-month average. Keep it up!`
+                title: '🎉 Great Job!',
+                message: `Your spending is ${decreasePercent}% lower than your 3-month average. You're saving ₹${(analysis.avgLast3Months - analysis.currentMonthTotal).toFixed(2)} this month!`
             });
         }
 
-        // Top category recommendation
+        // Top category recommendation with specific advice
         if (analysis.topCategories.length > 0) {
             const [topCategory, amount] = analysis.topCategories[0];
             const percentage = (amount / analysis.currentMonthTotal * 100).toFixed(1);
+            
+            let advice = '';
+            if (topCategory === 'Groceries') {
+                advice = 'Consider meal planning or bulk buying to reduce grocery costs.';
+            } else if (topCategory === 'Transportation') {
+                advice = 'Look into carpooling, public transport, or fuel-efficient driving.';
+            } else if (topCategory === 'Entertainment') {
+                advice = 'Consider free or low-cost entertainment options.';
+            } else if (topCategory === 'Food & Dining') {
+                advice = 'Try cooking at home more often to reduce dining out costs.';
+            } else {
+                advice = 'Review if this spending aligns with your financial goals.';
+            }
+            
             recommendations.push({
                 type: 'info',
-                title: 'Top Spending Category',
-                message: `${topCategory} accounts for ${percentage}% of your spending (₹${amount.toFixed(2)}). Consider if this aligns with your priorities.`
+                title: '🏆 Top Spending Category',
+                message: `${topCategory} accounts for ${percentage}% of your spending (₹${amount.toFixed(2)}). ${advice}`
             });
         }
 
         // High expense recommendation
         if (parseFloat(analysis.highestExpense.amount) > analysis.currentMonthTotal * 0.3) {
+            const expensePercent = (parseFloat(analysis.highestExpense.amount) / analysis.currentMonthTotal * 100).toFixed(1);
             recommendations.push({
                 type: 'warning',
-                title: 'High Single Expense',
-                message: `Your highest expense (${analysis.highestExpense.description} - ₹${analysis.highestExpense.amount}) represents a significant portion of your monthly spending.`
+                title: '💸 High Single Expense',
+                message: `Your highest expense "${analysis.highestExpense.description}" (₹${analysis.highestExpense.amount}) represents ${expensePercent}% of your monthly spending. Consider if this was necessary or could be reduced.`
             });
         }
 
@@ -1217,8 +1222,38 @@ class ExpenseManager {
         if (categoryCount < 3) {
             recommendations.push({
                 type: 'info',
-                title: 'Spending Diversity',
-                message: `You're spending in only ${categoryCount} categories. Consider diversifying your expenses for better financial health.`
+                title: '📊 Spending Diversity',
+                message: `You're spending in only ${categoryCount} categories. Diversifying your expenses can help identify areas for optimization.`
+            });
+        }
+
+        // Daily spending analysis
+        const avgDailySpending = analysis.currentMonthTotal / 30;
+        if (avgDailySpending > 100) {
+            recommendations.push({
+                type: 'info',
+                title: '📅 Daily Spending',
+                message: `You're spending an average of ₹${avgDailySpending.toFixed(2)} per day. Consider setting a daily budget to control expenses.`
+            });
+        }
+
+        // Transaction frequency analysis
+        const avgTransactionsPerDay = analysis.currentMonthExpenses.length / 30;
+        if (avgTransactionsPerDay > 2) {
+            recommendations.push({
+                type: 'info',
+                title: '🔄 Transaction Frequency',
+                message: `You make ${avgTransactionsPerDay.toFixed(1)} transactions per day on average. Consider consolidating small purchases.`
+            });
+        }
+
+        // Savings opportunity
+        if (analysis.currentMonthTotal > 0) {
+            const potentialSavings = analysis.currentMonthTotal * 0.1; // 10% savings opportunity
+            recommendations.push({
+                type: 'success',
+                title: '💰 Savings Opportunity',
+                message: `By reducing your expenses by just 10%, you could save ₹${potentialSavings.toFixed(2)} this month!`
             });
         }
 
@@ -1312,7 +1347,7 @@ class ExpenseManager {
                 <div class="col-12">
                     <div class="card border-secondary">
                         <div class="card-header bg-secondary text-white">
-                            <h6 class="mb-0">📈 Quick Stats</h6>
+                            <h6 class="mb-0">📈 Detailed Analysis</h6>
                         </div>
                         <div class="card-body">
                             <div class="row text-center">
@@ -1329,8 +1364,23 @@ class ExpenseManager {
                                     <small class="text-muted">Avg per Transaction</small>
                                 </div>
                                 <div class="col-md-3">
-                                    <h5 class="text-warning">${trendIcon}</h5>
+                                    <h5 class="text-warning">₹${(analysis.currentMonthTotal / 30).toFixed(2)}</h5>
+                                    <small class="text-muted">Daily Average</small>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <h6 class="text-primary">${trendIcon} ${analysis.trend.toUpperCase()}</h6>
                                     <small class="text-muted">Spending Trend</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-success">₹${(analysis.currentMonthTotal * 0.1).toFixed(2)}</h6>
+                                    <small class="text-muted">10% Savings Potential</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-info">${(analysis.currentMonthExpenses.length / 30).toFixed(1)}</h6>
+                                    <small class="text-muted">Transactions/Day</small>
                                 </div>
                             </div>
                         </div>
