@@ -153,7 +153,8 @@ class ExpenseManager {
 
     async loadExpenses() {
         try {
-            const response = await fetch(`/api/expenses?month=${this.currentMonth}&year=${this.currentYear}`);
+            // Load all expenses, we'll filter client-side
+            const response = await fetch('/api/expenses');
             this.expenses = await response.json();
         } catch (error) {
             console.error('Error loading expenses:', error);
@@ -162,7 +163,8 @@ class ExpenseManager {
 
     async loadIncome() {
         try {
-            const response = await fetch(`/api/income?month=${this.currentMonth}&year=${this.currentYear}`);
+            // Load all income, we'll filter client-side
+            const response = await fetch('/api/income');
             this.income = await response.json();
         } catch (error) {
             console.error('Error loading income:', error);
@@ -171,7 +173,8 @@ class ExpenseManager {
 
     async loadSummary() {
         try {
-            const response = await fetch(`/api/summary?month=${this.currentMonth}&year=${this.currentYear}`);
+            // Load summary for current year only (for yearly data)
+            const response = await fetch(`/api/summary?year=${this.currentYear}`);
             this.summary = await response.json();
         } catch (error) {
             console.error('Error loading summary:', error);
@@ -251,17 +254,24 @@ class ExpenseManager {
     }
 
     updateSummaryCards() {
-        // Update current month summary cards (upper tiles)
-        if (this.currentMonthSummary) {
-            document.getElementById('current-month-income').textContent = this.formatCurrency(this.currentMonthSummary.totalIncome);
-            document.getElementById('current-month-expenses').textContent = this.formatCurrency(this.currentMonthSummary.totalExpenses);
-            document.getElementById('current-month-net').textContent = this.formatCurrency(this.currentMonthSummary.netIncome);
-        }
+        // Get filtered data based on current selection (month or date range)
+        const filteredExpenses = this.filterDataByDateRange(this.expenses);
+        const filteredIncome = this.filterDataByDateRange(this.income);
+        
+        // Calculate current period totals
+        const totalIncome = filteredIncome.reduce((sum, inc) => sum + parseFloat(inc.amount), 0);
+        const totalExpenses = filteredExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+        const netIncome = totalIncome - totalExpenses;
+        
+        // Update current period summary cards (upper tiles)
+        document.getElementById('current-month-income').textContent = this.formatCurrency(totalIncome);
+        document.getElementById('current-month-expenses').textContent = this.formatCurrency(totalExpenses);
+        document.getElementById('current-month-net').textContent = this.formatCurrency(netIncome);
         
         // Update total transactions (overall)
         document.getElementById('total-transactions').textContent = this.expenses.length + this.income.length;
         
-        // Update yearly summary cards (lower tiles)
+        // Update yearly summary cards (lower tiles) - always show full year data
         if (this.yearlySummary) {
             document.getElementById('yearly-income').textContent = this.formatCurrency(this.yearlySummary.totalIncome);
             document.getElementById('yearly-expenses').textContent = this.formatCurrency(this.yearlySummary.totalExpenses);
@@ -417,7 +427,9 @@ class ExpenseManager {
         const tbody = document.querySelector('#expenses-table tbody');
         tbody.innerHTML = '';
 
-        this.expenses.forEach(expense => {
+        // Use filtered data based on current selection
+        const filteredExpenses = this.filterDataByDateRange(this.expenses);
+        filteredExpenses.forEach(expense => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${this.formatDate(expense.date)}</td>
@@ -441,7 +453,9 @@ class ExpenseManager {
         const tbody = document.querySelector('#income-table tbody');
         tbody.innerHTML = '';
 
-        this.income.forEach(income => {
+        // Use filtered data based on current selection
+        const filteredIncome = this.filterDataByDateRange(this.income);
+        filteredIncome.forEach(income => {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${this.formatDate(income.date)}</td>
@@ -1120,20 +1134,7 @@ class ExpenseManager {
         console.log('Total expenses available:', this.expenses.length);
         
         // Get current month expenses (with date range support)
-        const currentMonthExpenses = this.expenses.filter(expense => {
-            const expenseDate = new Date(expense.date);
-            
-            // If date range is active, use date range filtering
-            if (this.dateRange.from && this.dateRange.to) {
-                const fromDate = new Date(this.dateRange.from);
-                const toDate = new Date(this.dateRange.to);
-                return expenseDate >= fromDate && expenseDate <= toDate;
-            }
-            
-            // Otherwise use month/year filtering
-            return expenseDate.getMonth() + 1 === currentMonth && 
-                   expenseDate.getFullYear() === currentYear;
-        });
+        const currentMonthExpenses = this.filterDataByDateRange(this.expenses);
         console.log('Current month expenses found:', currentMonthExpenses.length);
 
         // Get last 3 months for comparison
@@ -2003,20 +2004,7 @@ class ExpenseManager {
                    expenseDate.getFullYear() === currentYear;
         });
         
-        const currentMonthIncome = this.income.filter(income => {
-            const incomeDate = new Date(income.date);
-            
-            // If date range is active, use date range filtering
-            if (this.dateRange.from && this.dateRange.to) {
-                const fromDate = new Date(this.dateRange.from);
-                const toDate = new Date(this.dateRange.to);
-                return incomeDate >= fromDate && incomeDate <= toDate;
-            }
-            
-            // Otherwise use month/year filtering
-            return incomeDate.getMonth() + 1 === currentMonth && 
-                   incomeDate.getFullYear() === currentYear;
-        });
+        const currentMonthIncome = this.filterDataByDateRange(this.income);
         
         const totalExpenses = currentMonthExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
         const totalIncome = currentMonthIncome.reduce((sum, inc) => sum + parseFloat(inc.amount), 0);
@@ -2172,7 +2160,7 @@ class ExpenseManager {
         
         // Reload data with date range
         this.loadData();
-        this.updateSummary();
+        this.updateSummaryCards();
         this.updateYearlySummary();
         this.renderCharts();
         this.showAlert('Date range applied successfully', 'success');
@@ -2189,7 +2177,7 @@ class ExpenseManager {
         
         // Reload data without date range
         this.loadData();
-        this.updateSummary();
+        this.updateSummaryCards();
         this.updateYearlySummary();
         this.renderCharts();
         this.showAlert('Date range cleared', 'info');
@@ -2215,7 +2203,7 @@ class ExpenseManager {
         
         // Reload data
         this.loadData();
-        this.updateSummary();
+        this.updateSummaryCards();
         this.updateYearlySummary();
         this.renderCharts();
         this.showAlert(`Switched to ${this.getMonthName(selectedMonth)} ${selectedYear}`, 'success');
@@ -2227,6 +2215,24 @@ class ExpenseManager {
             month: 'short', 
             day: 'numeric', 
             year: 'numeric' 
+        });
+    }
+
+    // Version 2.2: Centralized Data Filtering
+    filterDataByDateRange(data, dateField = 'date') {
+        return data.filter(item => {
+            const itemDate = new Date(item[dateField]);
+            
+            // If date range is active, use date range filtering
+            if (this.dateRange.from && this.dateRange.to) {
+                const fromDate = new Date(this.dateRange.from);
+                const toDate = new Date(this.dateRange.to);
+                return itemDate >= fromDate && itemDate <= toDate;
+            }
+            
+            // Otherwise use month/year filtering
+            return itemDate.getMonth() + 1 === this.currentMonth && 
+                   itemDate.getFullYear() === this.currentYear;
         });
     }
 
