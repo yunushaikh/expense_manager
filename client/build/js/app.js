@@ -175,11 +175,30 @@ class ExpenseManager {
         }
     }
 
-    loadDashboardData() {
+    async loadDashboardData() {
+        // Load overall data for dashboard (not monthly)
+        await this.loadOverallData();
         this.updateSummaryCards();
         this.updateRecentTransactions();
-        this.createMonthlyChart();
+        this.createOverallChart();
         this.createCategoryChart();
+    }
+
+    async loadOverallData() {
+        try {
+            // Load all expenses and income for the year
+            const [expensesResponse, incomeResponse, summaryResponse] = await Promise.all([
+                fetch(`/api/expenses?year=${this.currentYear}`),
+                fetch(`/api/income?year=${this.currentYear}`),
+                fetch(`/api/summary?year=${this.currentYear}`)
+            ]);
+
+            this.expenses = await expensesResponse.json();
+            this.income = await incomeResponse.json();
+            this.summary = await summaryResponse.json();
+        } catch (error) {
+            console.error('Error loading overall data:', error);
+        }
     }
 
     reloadCurrentSection() {
@@ -234,41 +253,45 @@ class ExpenseManager {
         });
     }
 
-    async createMonthlyChart() {
+    createOverallChart() {
         const ctx = document.getElementById('monthlyChart').getContext('2d');
         
-        // Get last 6 months data
+        // Group data by month for the current year
+        const monthlyData = {};
+        
+        // Process expenses
+        this.expenses.forEach(expense => {
+            const date = new Date(expense.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = { income: 0, expenses: 0, month: date.getMonth() };
+            }
+            monthlyData[monthKey].expenses += parseFloat(expense.amount);
+        });
+        
+        // Process income
+        this.income.forEach(income => {
+            const date = new Date(income.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = { income: 0, expenses: 0, month: date.getMonth() };
+            }
+            monthlyData[monthKey].income += parseFloat(income.amount);
+        });
+        
+        // Sort by month and prepare data
+        const sortedMonths = Object.keys(monthlyData).sort();
         const months = [];
         const incomeData = [];
         const expenseData = [];
         
-        for (let i = 5; i >= 0; i--) {
-            const date = new Date(this.currentYear, this.currentMonth - 1 - i, 1);
-            const month = date.getMonth() + 1;
-            const year = date.getFullYear();
+        sortedMonths.forEach(monthKey => {
+            const data = monthlyData[monthKey];
+            const date = new Date(this.currentYear, data.month, 1);
             months.push(date.toLocaleDateString('en-US', { month: 'short' }));
-            
-            // Fetch real data for each month
-            try {
-                const [expensesResponse, incomeResponse] = await Promise.all([
-                    fetch(`/api/expenses?month=${month}&year=${year}`),
-                    fetch(`/api/income?month=${month}&year=${year}`)
-                ]);
-                
-                const expenses = await expensesResponse.json();
-                const income = await incomeResponse.json();
-                
-                const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-                const totalIncome = income.reduce((sum, inc) => sum + parseFloat(inc.amount), 0);
-                
-                incomeData.push(totalIncome);
-                expenseData.push(totalExpenses);
-            } catch (error) {
-                console.error('Error fetching monthly data:', error);
-                incomeData.push(0);
-                expenseData.push(0);
-            }
-        }
+            incomeData.push(data.income);
+            expenseData.push(data.expenses);
+        });
 
         new Chart(ctx, {
             type: 'line',
