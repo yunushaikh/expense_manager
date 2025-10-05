@@ -437,10 +437,10 @@ class ExpenseManager {
                 <td>${expense.description || 'No description'}</td>
                 <td class="text-danger">${this.formatCurrency(expense.amount)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="app.editExpense(${expense.id})">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="window.expenseManager.editExpense(${expense.id})">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="app.deleteExpense(${expense.id})">
+                    <button class="btn btn-sm btn-outline-danger" onclick="window.expenseManager.deleteExpense(${expense.id})">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -463,10 +463,10 @@ class ExpenseManager {
                 <td>${income.description || 'No description'}</td>
                 <td class="text-success">${this.formatCurrency(income.amount)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="app.editIncome(${income.id})">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="window.expenseManager.editIncome(${income.id})">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="app.deleteIncome(${income.id})">
+                    <button class="btn btn-sm btn-outline-danger" onclick="window.expenseManager.deleteIncome(${income.id})">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -2137,7 +2137,7 @@ class ExpenseManager {
     }
 
     // Version 2.1: Fixed Date Range Functionality
-    applyDateRange() {
+    async applyDateRange() {
         const fromDate = document.getElementById('date-from').value;
         const toDate = document.getElementById('date-to').value;
         
@@ -2159,14 +2159,15 @@ class ExpenseManager {
             `${this.formatDate(fromDate)} - ${this.formatDate(toDate)}`;
         
         // Reload data with date range
-        this.loadData();
+        await this.loadData();
         this.updateSummaryCards();
-        this.updateYearlySummary();
-        this.renderCharts();
+        
+        // Refresh current view
+        this.reloadCurrentSection();
         this.showAlert('Date range applied successfully', 'success');
     }
 
-    clearDateRange() {
+    async clearDateRange() {
         this.dateRange.from = null;
         this.dateRange.to = null;
         document.getElementById('date-from').value = '';
@@ -2176,15 +2177,16 @@ class ExpenseManager {
         this.updateCurrentMonthDisplay();
         
         // Reload data without date range
-        this.loadData();
+        await this.loadData();
         this.updateSummaryCards();
-        this.updateYearlySummary();
-        this.renderCharts();
+        
+        // Refresh current view
+        this.reloadCurrentSection();
         this.showAlert('Date range cleared', 'info');
     }
 
     // Version 2.1: Month Selection Functionality
-    applyMonthSelection() {
+    async applyMonthSelection() {
         const selectedMonth = parseInt(document.getElementById('month-select').value);
         const selectedYear = parseInt(document.getElementById('year-select').value);
         
@@ -2202,10 +2204,11 @@ class ExpenseManager {
         this.updateCurrentMonthDisplay();
         
         // Reload data
-        this.loadData();
+        await this.loadData();
         this.updateSummaryCards();
-        this.updateYearlySummary();
-        this.renderCharts();
+        
+        // Refresh current view
+        this.reloadCurrentSection();
         this.showAlert(`Switched to ${this.getMonthName(selectedMonth)} ${selectedYear}`, 'success');
     }
 
@@ -2284,11 +2287,8 @@ class ExpenseManager {
 
 }
 
-// Initialize the application
-const app = new ExpenseManager();
-window.expenseManager = app;
-
-// Initialize when DOM is ready
+// Initialize the application when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    app.init();
+    const app = new ExpenseManager();
+    window.expenseManager = app;
 });
